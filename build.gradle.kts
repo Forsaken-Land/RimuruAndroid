@@ -1,6 +1,6 @@
 buildscript {
     // __LATEST_COMPOSE_RELEASE_VERSION__
-    val composeVersion = System.getenv("COMPOSE_TEMPLATE_COMPOSE_VERSION") ?: "0.5.0-build262"
+    val composeVersion = System.getenv("COMPOSE_TEMPLATE_COMPOSE_VERSION") ?: "1.0.0-alpha1-rc3"
 
     repositories {
         maven("https://maven.aliyun.com/repository/gradle-plugin")
@@ -26,7 +26,7 @@ allprojects {
     repositories {
         maven("https://maven.aliyun.com/repository/gradle-plugin")
         maven("https://maven.aliyun.com/repository/public")
-        maven("https://maven.blackyin.xyz:8015/repository/maven-public/")
+        maven("https://maven.fanua.top:8015/repository/maven-public/")
         maven("https://jitpack.io/")
         google()
         mavenCentral()
