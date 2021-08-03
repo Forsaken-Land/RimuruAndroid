@@ -3,12 +3,8 @@ buildscript {
     val composeVersion = System.getenv("COMPOSE_TEMPLATE_COMPOSE_VERSION") ?: "1.0.0-alpha1-rc3"
 
     repositories {
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
-        maven("https://maven.aliyun.com/repository/public")
-        maven("https://maven.blackyin.xyz:8015/repository/maven-public/")
-        maven("https://jitpack.io/")
+        maven("https://maven.fanua.top:8015/repository/maven-public/")
         google()
-        mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 
@@ -24,12 +20,8 @@ allprojects {
     group = "top.fanua.mc"
     version = "1.0.0"
     repositories {
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
-        maven("https://maven.aliyun.com/repository/public")
         maven("https://maven.fanua.top:8015/repository/maven-public/")
-        maven("https://jitpack.io/")
         google()
-        mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 }

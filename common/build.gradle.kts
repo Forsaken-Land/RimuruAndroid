@@ -16,6 +16,7 @@ kotlin {
                 api(compose.runtime)
                 api(compose.foundation)
                 api(compose.material)
+                api("top.fanua.doctor:doctor-client:1.3.6")
             }
         }
         named("androidMain") {

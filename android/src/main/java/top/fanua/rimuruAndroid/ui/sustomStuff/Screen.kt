@@ -1,6 +1,7 @@
 package top.fanua.rimuruAndroid.ui.sustomStuff
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLabel
@@ -19,11 +20,12 @@ sealed class Screen(
     object Home : Screen("home", "Home", Icons.Filled.Home)
     object Terminal : Screen("terminal", "Terminal", Icons.Filled.VideoLabel)
     object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
+    object Chat : Screen("chat", "Chat", Icons.Filled.Chat)
 
 
     object Items {
         val list = listOf(
-            Home, Terminal, Settings
+            Home, Terminal, Chat, Settings
         )
     }
 }

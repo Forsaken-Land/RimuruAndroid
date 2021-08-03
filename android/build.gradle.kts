@@ -5,6 +5,10 @@ plugins {
 }
 
 android {
+    packagingOptions {
+        exclude("META-INF/atomicfu.kotlin_module")
+        exclude("META-INF/kotlinx-io.kotlin_module")
+    }
     compileSdkVersion(30)
 
     defaultConfig {

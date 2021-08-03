@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
                             Screen.Home -> App()
                             Screen.Settings -> println(currentScreen.value)
                             Screen.Terminal -> println(currentScreen.value)
+                            Screen.Chat -> println(currentScreen.value)
                         }
 
                     }
