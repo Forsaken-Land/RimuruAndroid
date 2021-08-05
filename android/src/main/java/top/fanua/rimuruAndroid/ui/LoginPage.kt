@@ -1,7 +1,10 @@
 package top.fanua.rimuruAndroid.ui
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,33 +32,39 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.LiveData
-import androidx.room.*
-import coil.compose.LocalImageLoader
 import coil.compose.rememberImagePainter
-import coil.request.ImageRequest
-import com.google.accompanist.coil.rememberCoilPainter
-import com.google.accompanist.imageloading.LoadPainterDefaults
-import kotlinx.coroutines.flow.Flow
-import top.fanua.rimuruAndroid.MainActivity
 import top.fanua.rimuruAndroid.ui.theme.InputColor
 import top.fanua.rimuruAndroid.ui.theme.InputField
 import top.fanua.rimuruAndroid.ui.theme.InputText
+import top.fanua.rimuruAndroid.utils.AESUtils
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.*
 
 /**
  *
  * @author Doctor_Yin
  * @since 2021/8/4:18:49
  */
+@SuppressLint("NewApi")
 @OptIn(ExperimentalComposeUiApi::class)
+@RequiresApi(Build.VERSION_CODES.N)
 @Composable
-fun LoginPage(userDao: UserDao) {
-    val users = userDao.queryAll().value.orEmpty()
+fun LoginPage(applicationContext: Context, loginEmail: MutableState<String>) {
+    val fileExtension = "@doctor@"
+    val accounts = remember { mutableMapOf<String, File>() }
+    val userDir = File("${applicationContext.dataDir.path}/files/accounts")
+    if (!userDir.exists()) userDir.mkdirs()
 
-    val accounts = remember { mutableMapOf<String, User>() }
-    users.forEach { user: User ->
-        accounts[user.email] = user
+    val pros = remember { Properties() }
+    val accountFiles = File("${applicationContext.dataDir.path}/files/accounts").walk()
+        .maxDepth(1)
+        .filter { it.isFile }
+        .filter { it.extension == "@doctor@" }
+        .toList()
+    accountFiles.forEach {
+        accounts[it.name.replace(".$fileExtension", "")] = it
     }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -120,18 +129,31 @@ fun LoginPage(userDao: UserDao) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             trailingIcon = {
                 Row {
-                    if (accounts.isEmpty() && !isEmailWillWrite) Surface(
-                        color = Color.Transparent,
-                        modifier = Modifier.padding(horizontal = 10.dp).size(40.dp)
-                    ) { }
-                    if (isEmailWillWrite && email.isNotEmpty()) Icon(
-                        Icons.Rounded.Clear,
-                        contentDescription = null,
-                        tint = InputColor,
-                        modifier = Modifier.padding(horizontal = 20.dp).clickable {
-                            email = ""
-                        }.size(20.dp)
-                    )
+                    if (accounts.isEmpty()) {
+                        if (!isEmailWillWrite) Surface(
+                            color = Color.Transparent,
+                            modifier = Modifier.padding(horizontal = 10.dp).size(40.dp)
+                        ) { }
+                        if (isEmailWillWrite && email.isEmpty()) Surface(
+                            color = Color.Transparent,
+                            modifier = Modifier.padding(horizontal = 10.dp).size(40.dp)
+                        ) { }
+                    }
+                    if (email.isNotEmpty()) {
+                        if (isEmailWillWrite)
+                            Icon(
+                                Icons.Rounded.Clear,
+                                contentDescription = null,
+                                tint = InputColor,
+                                modifier = Modifier.offset(y = 10.dp,x = 10.dp).size(20.dp).clickable {
+                                    email = ""
+                                }
+                            )
+                        else Surface(
+                            color = Color.Transparent,
+                            modifier = Modifier.size(20.dp)
+                        ) { }
+                    } else Surface(color = Color.Transparent, modifier = Modifier.size(20.dp)) {}
                     if (accounts.isNotEmpty()) Icon(
                         if (showAccount) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
                         contentDescription = null,
@@ -159,7 +181,10 @@ fun LoginPage(userDao: UserDao) {
                         ), contentDescription = null
                     )
                 }
-
+                Surface(
+                    color = Color.Transparent,
+                    modifier = Modifier.size(65.dp)
+                ) { }
                 //头像获取
             }
         )
@@ -205,6 +230,19 @@ fun LoginPage(userDao: UserDao) {
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     keyboardController?.hide()
+                    if (!warning) {
+                        val file = File("$userDir/$email.$fileExtension")
+                        if (!file.exists()) file.createNewFile()
+                        pros.load(FileInputStream(file))
+                        pros["email"] = email
+                        pros["password"] = AESUtils.encrypt(
+                            password,
+                            "7CB2RGS6D1UIJIE2"
+                        )
+                        pros["isLogin"] = true.toString()
+                        pros.store(FileOutputStream(file), "mc bot configuration file")
+                        loginEmail.value = email
+                    }
                 }),
                 leadingIcon = {
                     if (isPasswordWillWrite) {
@@ -303,35 +341,4 @@ fun LoginPage(userDao: UserDao) {
     }
 
 
-}
-
-@Entity(tableName = "user")
-data class User(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "id", typeAffinity = ColumnInfo.INTEGER)
-    val id: Int? = null,
-    val email: String,
-    val password: String,
-    val imgUrl: String,
-    val isLogin: Boolean
-)
-
-@Dao
-interface UserDao {
-
-    @Query("SELECT * FROM user")
-    fun queryAll(): LiveData<List<User>>
-
-    @Insert
-    fun insert(entity: User)
-
-    @Query("DELETE FROM user")
-    fun delete()
-}
-
-@Database(entities = [User::class], version = 1)
-abstract class AppDatabase : RoomDatabase() {
-
-    //获得数据访问对象
-    abstract fun getUserDao(): UserDao
 }

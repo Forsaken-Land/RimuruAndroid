@@ -4,7 +4,7 @@ plugins {
     id("com.android.application")
     kotlin("android")
     id("org.jetbrains.compose")
-    id("kotlin-kapt")
+//    id("kotlin-kapt")
 }
 
 android {
@@ -19,15 +19,15 @@ android {
         targetSdkVersion(30)
         versionCode = 1
         versionName = "1.0"
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf(
-                    "room.schemaLocation" to "$projectDir/schemas",
-                    "room.incremental" to "true",
-                    "room.expandProjection" to "true"
-                )
-            }
-        }
+//        javaCompileOptions {
+//            annotationProcessorOptions {
+//                arguments += mapOf(
+//                    "room.schemaLocation" to "$projectDir/schemas",
+//                    "room.incremental" to "true",
+//                    "room.expandProjection" to "true"
+//                )
+//            }
+//        }
     }
 
     compileOptions {
@@ -37,19 +37,19 @@ android {
 }
 
 dependencies {
-    val roomVersion = "2.4.0-alpha03"
-
-    implementation("androidx.room:room-runtime:$roomVersion")
-
-    // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$roomVersion")
-
-    // optional - Kotlin Extensions and Coroutines support for Room
-    implementation("androidx.room:room-ktx:$roomVersion")
-
-
-    // optional - Test helpers
-    testImplementation("androidx.room:room-testing:$roomVersion")
+//    val roomVersion = "2.4.0-alpha03"
+//
+//    implementation("androidx.room:room-runtime:$roomVersion")
+//
+//    // To use Kotlin annotation processing tool (kapt)
+//    kapt("androidx.room:room-compiler:$roomVersion")
+//
+//    // optional - Kotlin Extensions and Coroutines support for Room
+//    implementation("androidx.room:room-ktx:$roomVersion")
+//
+//
+//    // optional - Test helpers
+//    testImplementation("androidx.room:room-testing:$roomVersion")
     implementation(project(":common"))
     implementation("androidx.activity:activity-compose:1.3.0")
     implementation("androidx.compose.material:material-icons-extended:1.0.0")

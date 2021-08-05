@@ -2,34 +2,22 @@ package top.fanua.rimuruAndroid
 
 import App
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
-import android.util.Log.d
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.room.Room
-import kotlinx.coroutines.flow.compose
-import top.fanua.rimuruAndroid.ui.AppDatabase
-import top.fanua.rimuruAndroid.ui.LoginPage
-import top.fanua.rimuruAndroid.ui.User
+import top.fanua.rimuruAndroid.ui.*
 import top.fanua.rimuruAndroid.ui.sustomStuff.CustomBottomNavigation
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
-import top.fanua.rimuruAndroid.ui.terminal
 import top.fanua.rimuruAndroid.ui.theme.CustomBottomNavigationTheme
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -40,29 +28,36 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val currentScreen = mutableStateOf<Screen>(Screen.Home)
             val terminalMsg = remember { mutableStateOf("") }
-            val isLogin = remember { mutableStateOf(false) }
+            val accountFiles = remember {
+                mutableStateOf(File("${applicationContext.dataDir.path}/files/accounts").walk()
+                    .maxDepth(1)
+                    .filter { it.isFile }
+                    .filter { it.extension == "@doctor@" }
+                    .toList())
+            }
+            val email = remember { mutableStateOf("") }
 
-
-            val db = Room
-                .databaseBuilder(applicationContext, AppDatabase::class.java, "db_users")
-                .build()
-            val userDao = db.getUserDao()
-            val users = userDao.queryAll()
-
-
-            users.observe(this) {
-                for (user in it) {
-                    if (user.isLogin) {
-                        isLogin.value = true
-                        break
+            var ok = false
+            accountFiles.value.forEach {
+                val pros = Properties()
+                pros.load(FileInputStream(it))
+                if (pros.isEmpty) {
+                    it.delete()
+                } else {
+                    val loginStats = pros.getProperty("isLogin") ?: false.toString()
+                    if (loginStats.toBoolean()) {
+                        email.value = pros.getProperty("email")
+                        ok = true
                     }
-                    isLogin.value = false
                 }
+            }
+            if (!ok) {
+                email.value = ""
             }
 
 
 
-            if (isLogin.value) {
+            if (email.value.isNotEmpty()) {
                 CustomBottomNavigationTheme {
 
                     Surface(color = MaterialTheme.colors.background) {
@@ -77,7 +72,7 @@ class MainActivity : AppCompatActivity() {
                         ) {
                             when (currentScreen.value) {
                                 Screen.Home -> App()
-                                Screen.Settings -> println(currentScreen.value)
+                                Screen.Settings -> SettingsPage(accountFiles, email)
                                 Screen.Terminal -> terminal(terminalMsg)
                                 Screen.Chat -> println(currentScreen.value)
                                 Screen.Servers -> println(currentScreen.value)
@@ -87,7 +82,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                LoginPage(userDao)
+                LoginPage(applicationContext, email)
             }
 
 
