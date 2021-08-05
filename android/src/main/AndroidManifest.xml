@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools" package="com.myapplication" xmlns:dist="http://schemas.android.com/apk/distribution">
+          xmlns:tools="http://schemas.android.com/tools" package="top.fanua.rimuruAndroid" xmlns:dist="http://schemas.android.com/apk/distribution">
 
     <dist:module dist:instant="true"/>
     <application
@@ -20,5 +20,7 @@
             </intent-filter>
         </activity>
     </application>
+    <uses-permission android:name="android.permission.INTERNET" tools:ignore="ManifestOrder"/>
+
 
 </manifest>
