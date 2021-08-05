@@ -153,7 +153,7 @@ fun LoginPage(applicationContext: Context, loginEmail: MutableState<String>) {
                             color = Color.Transparent,
                             modifier = Modifier.size(20.dp)
                         ) { }
-                    } else Surface(color = Color.Transparent, modifier = Modifier.size(20.dp)) {}
+                    } else Surface(color = Color.Transparent, modifier = Modifier.size(15.dp)) {}
                     if (accounts.isNotEmpty()) Icon(
                         if (showAccount) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
                         contentDescription = null,
@@ -168,10 +168,10 @@ fun LoginPage(applicationContext: Context, loginEmail: MutableState<String>) {
             },
             leadingIcon = {
                 if (accounts[email] == null) Surface(
-                    modifier = Modifier.offset(x = 5.dp).size(40.dp),
+                    modifier = Modifier.size(45.dp),
                     color = Color.Transparent
                 ) { } else Surface(
-                    modifier = Modifier.offset(x = 5.dp).size(40.dp),
+                    modifier = Modifier.size(45.dp),
                     color = if (showAccount) Color.Transparent else Color.White,
                     shape = RoundedCornerShape(30.dp)
                 ) {
@@ -183,7 +183,7 @@ fun LoginPage(applicationContext: Context, loginEmail: MutableState<String>) {
                 }
                 Surface(
                     color = Color.Transparent,
-                    modifier = Modifier.size(65.dp)
+                    modifier = Modifier.size(60.dp)
                 ) { }
                 //头像获取
             }
