@@ -12,6 +12,9 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.ui.*
 import top.fanua.rimuruAndroid.ui.sustomStuff.CustomBottomNavigation
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
@@ -26,66 +29,76 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+            val composableScope = rememberCoroutineScope()
             val currentScreen = mutableStateOf<Screen>(Screen.Home)
             val terminalMsg = remember { mutableStateOf("") }
-            val accountFiles = remember {
-                mutableStateOf(File("${applicationContext.dataDir.path}/files/accounts").walk()
-                    .maxDepth(1)
-                    .filter { it.isFile }
-                    .filter { it.extension == "@doctor@" }
-                    .toList())
-            }
+            val loading = remember { mutableStateOf(true) }
+            val accountPath = "${applicationContext.dataDir.path}/files/accounts"
+            val accountFiles = remember { mutableStateOf(emptyList<File>()) }
             val email = remember { mutableStateOf("") }
 
-            var ok = false
-            accountFiles.value.forEach {
-                val pros = Properties()
-                pros.load(FileInputStream(it))
-                if (pros.isEmpty) {
-                    it.delete()
-                } else {
-                    val loginStats = pros.getProperty("isLogin") ?: false.toString()
-                    if (loginStats.toBoolean()) {
-                        email.value = pros.getProperty("email")
-                        ok = true
+            if (email.value.isEmpty()) {
+                composableScope.launch(Dispatchers.IO) {
+                    accountFiles.value = File(accountPath).walk()
+                        .maxDepth(1)
+                        .filter { it.isFile }
+                        .filter { it.extension == "@doctor@" }
+                        .toList()
+                    var ok = false
+                    accountFiles.value.forEach {
+                        val pros = Properties()
+                        pros.load(FileInputStream(it))
+                        if (pros.isEmpty) {
+                            it.delete()
+                        } else {
+                            val loginStats = pros.getProperty("isLogin") ?: false.toString()
+                            if (loginStats.toBoolean()) {
+                                email.value = pros.getProperty("email")
+                                ok = true
+                            }
+                        }
                     }
+                    if (!ok) {
+                        email.value = ""
+                    }
+                    loading.value = false
                 }
             }
-            if (!ok) {
-                email.value = ""
-            }
 
 
+            if (!loading.value) {
+                if (email.value.isNotEmpty()) {
+                    CustomBottomNavigationTheme {
+                        Surface(color = MaterialTheme.colors.background) {
+                            Scaffold(
+                                bottomBar = {
+                                    CustomBottomNavigation(currentScreenId = currentScreen.value.id) {
+                                        currentScreen.value = it
+                                    }
 
-            if (email.value.isNotEmpty()) {
-                CustomBottomNavigationTheme {
-
-                    Surface(color = MaterialTheme.colors.background) {
-
-                        Scaffold(
-                            bottomBar = {
-                                CustomBottomNavigation(currentScreenId = currentScreen.value.id) {
-                                    currentScreen.value = it
+                                }
+                            ) {
+                                when (currentScreen.value) {
+                                    Screen.Home -> App()
+                                    Screen.Settings -> SettingsPage(
+                                        accountPath,
+                                        accountFiles,
+                                        email
+                                    )
+                                    Screen.Terminal -> terminal(terminalMsg)
+                                    Screen.Chat -> println(currentScreen.value)
+                                    Screen.Servers -> println(currentScreen.value)
                                 }
 
                             }
-                        ) {
-                            when (currentScreen.value) {
-                                Screen.Home -> App()
-                                Screen.Settings -> SettingsPage(accountFiles, email)
-                                Screen.Terminal -> terminal(terminalMsg)
-                                Screen.Chat -> println(currentScreen.value)
-                                Screen.Servers -> println(currentScreen.value)
-                            }
-
                         }
                     }
+                } else {
+                    LoginPage(accountPath, email)
                 }
-            } else {
-                LoginPage(applicationContext, email)
+
+
             }
-
-
         }
     }
 }
