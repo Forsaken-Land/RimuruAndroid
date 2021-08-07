@@ -111,13 +111,13 @@ class UserViewModel(
                             for (i in 0 until d) {
                                 for (j in 0 until d) {
                                     underBitmap[(x * d) + j, (y * d) + i] = bitmap[x + 8, y + 8]
-                                    onBitmap[(x * d) + j, (y * d + i)] = bitmap[x + 40, y + 40]
+                                    onBitmap[(x * d) + j, (y * d + i)] = bitmap[x + 40, y + 8]
                                 }
                             }
                         }
                     }
-
                     File(saveImg).write(underBitmap)
+                    File("$saveImg.on").write(onBitmap)
 
 
                     val account = Account(email, saveImg, password, true)
@@ -181,6 +181,7 @@ class UserViewModel(
     }
 
     fun getUserDir(): File = File(accountPath)
+
 
 
 }

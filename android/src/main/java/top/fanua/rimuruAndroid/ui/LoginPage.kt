@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -37,12 +39,14 @@ import coil.compose.rememberImagePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Account
+import top.fanua.rimuruAndroid.data.User
 import top.fanua.rimuruAndroid.ui.theme.InputColor
 import top.fanua.rimuruAndroid.ui.theme.InputField
 import top.fanua.rimuruAndroid.ui.theme.InputText
 import top.fanua.rimuruAndroid.utils.FileUtils
 import top.fanua.rimuruAndroid.models.LoginStatus.*
 import top.fanua.rimuruAndroid.models.UserViewModel
+import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 import java.io.File
 import java.io.FileNotFoundException
 
@@ -66,6 +70,14 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
     val keyboardController = LocalSoftwareKeyboardController.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    var onlyOne by remember { mutableStateOf(true) }
+    if (accounts.isNotEmpty() && onlyOne && email.isEmpty() && password.isEmpty()) {
+        val user = FileUtils.readFile<Account>(accounts.values.toList()[0])
+        email = user.email
+        password = user.password
+        onlyOne = false
+    }
     val emailInteractionSource = remember {
         MutableInteractionSource()
     }
@@ -163,6 +175,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                     ) {
                                         email = ""
                                         password = ""
+                                        showAccount = false
                                     }
                             )
                         } else Surface(
@@ -190,19 +203,11 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                 if (accounts[email] == null) Surface(
                     modifier = Modifier.size(45.dp),
                     color = Color.Transparent
-                ) { } else Surface(
-                    modifier = Modifier.size(45.dp),
-                    color = Color.Transparent,
-                    shape = RoundedCornerShape(30.dp)
-                ) {
+                ) { } else {
                     var imgUrl by remember { mutableStateOf("") }
                     imgUrl = accounts[email]?.let { FileUtils.readFile<Account>(it).imgUrl }.orEmpty()
                     if (!showAccount) {
-                        Image(
-                            painter = rememberImagePainter(
-                                data = File(imgUrl)
-                            ), contentDescription = null
-                        )
+                        ImageHeader(imgUrl)
                     }
                 }
                 Surface(
@@ -260,17 +265,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                     }
 
                                 ) {
-                                    Surface(
-                                        modifier = Modifier.padding(horizontal = 20.dp).size(45.dp),
-                                        color = Color.Transparent,
-                                        shape = RoundedCornerShape(30.dp)
-                                    ) {
-                                        Image(
-                                            painter = rememberImagePainter(
-                                                data = File(imgUrl)
-                                            ), contentDescription = null
-                                        )
-                                    }
+                                    ImageHeader(imgUrl)
                                     Text(
                                         localEmail,
                                         textAlign = TextAlign.Center,
