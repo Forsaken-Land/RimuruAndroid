@@ -4,9 +4,15 @@ plugins {
     id("com.android.application")
     kotlin("android")
     id("org.jetbrains.compose")
+    kotlin("plugin.serialization") version "1.5.21"
+
+
 //    id("kotlin-kapt")
 }
 
+apply {
+    plugin("org.jetbrains.kotlin.plugin.serialization")
+}
 android {
     packagingOptions {
         exclude("META-INF/atomicfu.kotlin_module")
@@ -51,6 +57,8 @@ dependencies {
 //    // optional - Test helpers
 //    testImplementation("androidx.room:room-testing:$roomVersion")
     implementation(project(":common"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
     implementation("androidx.activity:activity-compose:1.3.0")
     implementation("androidx.compose.material:material-icons-extended:1.0.0")
     implementation("com.google.accompanist:accompanist-coil:0.15.0")
