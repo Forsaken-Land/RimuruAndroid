@@ -49,5 +49,9 @@ object FileUtils {
         os.close()
     }
 
+    fun delFile(file: File) {
+        file.delete()
+    }
+
 }
 

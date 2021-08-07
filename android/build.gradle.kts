@@ -18,13 +18,13 @@ android {
         exclude("META-INF/atomicfu.kotlin_module")
         exclude("META-INF/kotlinx-io.kotlin_module")
     }
-    compileSdkVersion(30)
+    compileSdkVersion(31)
 
     defaultConfig {
-        minSdkVersion(21)
-        targetSdkVersion(30)
+        minSdkVersion(24)
+        targetSdkVersion(31)
         versionCode = 1
-        versionName = "1.0"
+        versionName = version.toString()
 //        javaCompileOptions {
 //            annotationProcessorOptions {
 //                arguments += mapOf(

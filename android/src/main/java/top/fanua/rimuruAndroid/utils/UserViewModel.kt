@@ -54,6 +54,16 @@ class UserViewModel(
         }
     }
 
+    fun delUser(email: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            refresh()
+            val file = accounts[email]
+            file?.delete()
+            refresh()
+        }
+
+    }
+
     fun signOut(email: MutableState<String>): LoginStatus {
         val job = viewModelScope.launch(Dispatchers.IO) {
             val file = accounts[email.value]!!
@@ -81,6 +91,7 @@ class UserViewModel(
             .filter { it.isFile }
             .filter { it.extension == "@doctor@" }
             .toList()
+        accounts.clear()
         accountFiles.value.forEach {
             accounts[it.name.replace(".$fileExtension", "")] = it
         }

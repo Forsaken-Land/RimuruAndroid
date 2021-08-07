@@ -49,6 +49,7 @@ import top.fanua.rimuruAndroid.utils.LoginStatus
 import top.fanua.rimuruAndroid.utils.LoginStatus.*
 import top.fanua.rimuruAndroid.utils.UserViewModel
 import java.io.File
+import java.io.FileNotFoundException
 
 /**
  *
@@ -111,6 +112,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
         }
 
         var showAccount by remember { mutableStateOf(false) }
+        if (accounts.isEmpty()) showAccount = false
 
         TextField(
             modifier = Modifier.width(320.dp),
@@ -240,7 +242,12 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                             var user by remember { mutableStateOf<User?>(null) }
                             composableScope.launch(Dispatchers.IO) {
                                 Thread.sleep(10L)
-                                user = FileUtils.readFile<User>(file)
+                                user = try {
+                                    FileUtils.readFile<User>(file)
+                                } catch (e: FileNotFoundException) {
+                                    null
+                                }
+
                             }
                             if (user != null) {
                                 val localEmail = user!!.email
@@ -274,6 +281,18 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                         maxLines = 1,
                                         modifier = Modifier.fillParentMaxWidth(0.6f)
                                     )
+                                    Icon(
+                                        Icons.Rounded.Clear,
+                                        contentDescription = null,
+                                        tint =
+                                        InputColor,
+                                        modifier = Modifier.size(20.dp).clickable(
+                                            interactionSource = MutableInteractionSource(),
+                                            indication = null
+                                        ) {
+                                            userViewModel.delUser(user!!.email)
+                                        }
+                                    )
                                 }
 
 
@@ -297,7 +316,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                 modifier = Modifier.width(320.dp).padding(top = 10.dp),
                 value = password,
                 onValueChange = {
-                    password = it
+                    password = it.replace("\n", "").replace(" ", "")
                 },
                 interactionSource = passwordInteractionSource,
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
