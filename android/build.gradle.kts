@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
 
 plugins {
     id("com.android.application")
@@ -56,14 +55,20 @@ dependencies {
 //
 //    // optional - Test helpers
 //    testImplementation("androidx.room:room-testing:$roomVersion")
+    val accompanist_version = "0.15.0"
     implementation(project(":common"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
     implementation("androidx.activity:activity-compose:1.3.0")
     implementation("androidx.compose.material:material-icons-extended:1.0.0")
-    implementation("com.google.accompanist:accompanist-coil:0.15.0")
+    implementation("com.google.accompanist:accompanist-coil:$accompanist_version")
 //    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.2")
+    implementation("com.google.accompanist:accompanist-insets:$accompanist_version")
+    implementation("com.google.accompanist:accompanist-insets-ui:$accompanist_version")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanist_version")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("top.fanua.doctor:doctor-client:1.3.6")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
 
 
     implementation(compose.uiTooling)

@@ -33,21 +33,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewModelScope
 import coil.compose.rememberImagePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.*
-import top.fanua.rimuruAndroid.data.User
+import top.fanua.rimuruAndroid.data.Account
 import top.fanua.rimuruAndroid.ui.theme.InputColor
 import top.fanua.rimuruAndroid.ui.theme.InputField
 import top.fanua.rimuruAndroid.ui.theme.InputText
-import top.fanua.rimuruAndroid.utils.AESUtils
 import top.fanua.rimuruAndroid.utils.FileUtils
-import top.fanua.rimuruAndroid.utils.LoginStatus
-import top.fanua.rimuruAndroid.utils.LoginStatus.*
-import top.fanua.rimuruAndroid.utils.UserViewModel
+import top.fanua.rimuruAndroid.models.LoginStatus.*
+import top.fanua.rimuruAndroid.models.UserViewModel
 import java.io.File
 import java.io.FileNotFoundException
 
@@ -129,7 +124,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
             colors = InputField(),
             textStyle = TextStyle(textAlign = TextAlign.Center).copy(fontSize = 18.sp),
             interactionSource = emailInteractionSource,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Email),
             trailingIcon = {
                 Row {
                     if (accounts.isEmpty()) {
@@ -201,11 +196,11 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                     shape = RoundedCornerShape(30.dp)
                 ) {
                     var imgUrl by remember { mutableStateOf("") }
-                    imgUrl = accounts[email]?.let { FileUtils.readFile<User>(it).imgUrl }.orEmpty()
+                    imgUrl = accounts[email]?.let { FileUtils.readFile<Account>(it).imgUrl }.orEmpty()
                     if (!showAccount) {
                         Image(
                             painter = rememberImagePainter(
-                                data = imgUrl
+                                data = File(imgUrl)
                             ), contentDescription = null
                         )
                     }
@@ -239,25 +234,27 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                             modifier = Modifier.height(60.dp).fillParentMaxWidth(),
                             color = Color(242, 243, 247)
                         ) {
-                            var user by remember { mutableStateOf<User?>(null) }
+                            var account by remember { mutableStateOf<Account?>(null) }
                             composableScope.launch(Dispatchers.IO) {
                                 Thread.sleep(10L)
-                                user = try {
-                                    FileUtils.readFile<User>(file)
+                                account = try {
+                                    FileUtils.readFile<Account>(file)
                                 } catch (e: FileNotFoundException) {
                                     null
                                 }
 
                             }
-                            if (user != null) {
-                                val localEmail = user!!.email
-                                val imgUrl = user!!.imgUrl
+                            if (account != null) {
+                                val localEmail = account!!.email
+                                val imgUrl = account!!.imgUrl
+                                val localPassword = account!!.password
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.clickable(
                                         interactionSource = MutableInteractionSource(),
                                         indication = null
                                     ) {
+                                        password = localPassword
                                         email = localEmail
                                         showAccount = false
                                     }
@@ -270,7 +267,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                     ) {
                                         Image(
                                             painter = rememberImagePainter(
-                                                data = imgUrl
+                                                data = File(imgUrl)
                                             ), contentDescription = null
                                         )
                                     }
@@ -290,7 +287,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                             interactionSource = MutableInteractionSource(),
                                             indication = null
                                         ) {
-                                            userViewModel.delUser(user!!.email)
+                                            userViewModel.delUser(account!!.email)
                                         }
                                     )
                                 }
@@ -306,11 +303,16 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
         }
         else {
             var loginStatus by remember { mutableStateOf(WAITING) }
+            val errorClose = remember { mutableStateOf(false) }
             when (loginStatus) {
                 OK -> loginEmail.value = email
-                ERROR -> Dialog("登录出错", loginStatus.msg)
-                UNKNOWN -> Dialog("未知错误", loginStatus.msg)
+                ERROR -> Dialog("登录出错", loginStatus.msg, errorClose)
+                UNKNOWN -> Dialog("未知错误", loginStatus.msg, errorClose)
                 WAITING -> Log.e("", "")
+            }
+            if (errorClose.value) {
+                loginStatus = WAITING
+                errorClose.value = false
             }
             TextField(
                 modifier = Modifier.width(320.dp).padding(top = 10.dp),

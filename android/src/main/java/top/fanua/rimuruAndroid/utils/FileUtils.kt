@@ -1,21 +1,11 @@
 package top.fanua.rimuruAndroid.utils
 
 import android.content.ContentValues
-import android.icu.text.DateTimePatternGenerator.PatternInfo.OK
+import android.graphics.Bitmap
 import android.util.Log
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import top.fanua.rimuruAndroid.MainActivity
-import top.fanua.rimuruAndroid.data.User
 import java.io.*
 
 /**
@@ -49,8 +39,24 @@ object FileUtils {
         os.close()
     }
 
-    fun delFile(file: File) {
-        file.delete()
+    fun File.write(byteArray: ByteArray) {
+        if (!parentFile!!.exists()) parentFile!!.mkdirs()
+        if (exists()) delete()
+        if (!exists()) createNewFile()
+        val os: OutputStream = FileOutputStream(this)
+        os.write(byteArray)
+        os.flush()
+        os.close()
+    }
+
+    fun File.write(bitmap: Bitmap) {
+        if (!parentFile!!.exists()) parentFile!!.mkdirs()
+        if (exists()) delete()
+        if (!exists()) createNewFile()
+        val os: OutputStream = FileOutputStream(this)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
+        os.flush()
+        os.close()
     }
 
 }

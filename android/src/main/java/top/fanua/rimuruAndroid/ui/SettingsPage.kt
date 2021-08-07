@@ -4,7 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import top.fanua.rimuruAndroid.utils.UserViewModel
+import top.fanua.rimuruAndroid.models.UserViewModel
 
 /**
  *

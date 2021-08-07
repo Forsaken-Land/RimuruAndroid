@@ -2,36 +2,40 @@ package top.fanua.rimuruAndroid
 
 import App
 import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewModelScope
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import top.fanua.rimuruAndroid.data.User
+import top.fanua.rimuruAndroid.data.Account
 import top.fanua.rimuruAndroid.ui.*
 import top.fanua.rimuruAndroid.ui.sustomStuff.CustomBottomNavigation
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.CustomBottomNavigationTheme
 import top.fanua.rimuruAndroid.utils.FileUtils
-import top.fanua.rimuruAndroid.utils.UserViewModel
-import java.io.File
-import java.io.FileInputStream
-import java.util.*
+import top.fanua.rimuruAndroid.models.UserViewModel
 
 class MainActivity : AppCompatActivity() {
     @SuppressLint("NewApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR
 
         setContent {
+
+            rememberSystemUiController().setStatusBarColor(
+                Color.Transparent, darkIcons = MaterialTheme.colors.isLight
+            )
             val userViewModel = UserViewModel(
                 "${applicationContext.dataDir.path}/files/accounts",
                 remember { mutableStateOf(emptyList()) },
@@ -41,15 +45,15 @@ class MainActivity : AppCompatActivity() {
             val terminalMsg = remember { mutableStateOf("") }
             val loading = remember { mutableStateOf(true) }
             val email = remember { mutableStateOf("") }
-
+            WindowCompat.setDecorFitsSystemWindows(window, email.value.isNotEmpty())
             if (email.value.isEmpty()) {
                 userViewModel.viewModelScope.launch(Dispatchers.IO) {
                     userViewModel.refresh()
                     var ok = false
                     userViewModel.accountFiles.value.forEach { file ->
-                        val user = FileUtils.readFile<User>(file)
-                        if (user.isLogin) {
-                            email.value = user.email
+                        val account = FileUtils.readFile<Account>(file)
+                        if (account.isLogin) {
+                            email.value = account.email
                             ok = true
                         }
                     }
@@ -63,9 +67,9 @@ class MainActivity : AppCompatActivity() {
                 userViewModel.viewModelScope.launch(Dispatchers.IO) {
                     userViewModel.refresh()
                     userViewModel.accountFiles.value.forEach { file ->
-                        val user = FileUtils.readFile<User>(file)
-                        if (user.isLogin && user.email != email.value) {
-                            FileUtils.writeFile(file, user.also {
+                        val account = FileUtils.readFile<Account>(file)
+                        if (account.isLogin && account.email != email.value) {
+                            FileUtils.writeFile(file, account.also {
                                 it.isLogin = false
                             })
                         }
