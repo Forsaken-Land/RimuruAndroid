@@ -1,8 +1,6 @@
 package top.fanua.rimuruAndroid.utils
 
-import android.content.ContentValues
 import android.graphics.Bitmap
-import android.util.Log
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -27,12 +25,8 @@ object FileUtils {
     }
 
     inline fun <reified T> writeFile(file: File, json: T) {
-        if (file.exists()) {
-            val d1 = file.delete()
-            Log.d(ContentValues.TAG, "delete old file: $d1")
-        }
-        val c1 = file.createNewFile()
-        Log.d(ContentValues.TAG, "create new file: $c1")
+        if (file.exists())file.delete()
+        file.createNewFile()
         val os: OutputStream = FileOutputStream(file)
         os.write(Json.encodeToString(json).toByteArray())
         os.flush()
@@ -58,6 +52,7 @@ object FileUtils {
         os.flush()
         os.close()
     }
+
 
 }
 

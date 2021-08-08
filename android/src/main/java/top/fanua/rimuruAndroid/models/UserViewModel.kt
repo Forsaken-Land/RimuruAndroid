@@ -4,11 +4,8 @@ package top.fanua.rimuruAndroid.models
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import android.util.Log
 import androidx.compose.runtime.MutableState
-import android.graphics.Canvas
-import android.graphics.Matrix
-import android.graphics.Paint
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.get
 import androidx.core.graphics.set
 import androidx.lifecycle.ViewModel
@@ -21,12 +18,15 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType
 import retrofit2.Retrofit
+import top.fanua.rimuruAndroid.R
 import top.fanua.rimuruAndroid.data.Account
 import top.fanua.rimuruAndroid.data.LoginRequest
 import top.fanua.rimuruAndroid.utils.FileUtils
 import top.fanua.rimuruAndroid.utils.FileUtils.write
 import top.fanua.rimuruAndroid.utils.HttpClient
 import java.io.File
+import java.io.IOException
+import java.util.*
 import kotlin.collections.set
 
 /**
@@ -36,9 +36,9 @@ import kotlin.collections.set
  */
 @OptIn(InternalCoroutinesApi::class)
 class UserViewModel(
-    private val accountPath: String,
-    val accountFiles: MutableState<List<File>>,
-    val accounts: MutableMap<String, File>
+        private val accountPath: String,
+        val accountFiles: MutableState<List<File>>,
+        val accounts: MutableMap<String, File>
 ) : ViewModel() {
 
     private val fileExtension = "@doctor@"
@@ -51,21 +51,51 @@ class UserViewModel(
 
     @OptIn(ExperimentalSerializationApi::class)
     private fun <T> createService(
-        serviceClass: Class<T>,
-        type: ContentType
+            serviceClass: Class<T>,
+            type: ContentType
     ): T {
         return Retrofit.Builder()
-            .baseUrl(authServerUrl)
-            .addConverterFactory(Json.asConverterFactory(type.type))
-            .build().create(serviceClass)
+                .baseUrl(authServerUrl)
+                .addConverterFactory(Json.asConverterFactory(type.type))
+                .build().create(serviceClass)
     }
 
+    private val jsonHttpClient = createService(HttpClient::class.java, ContentType.APPLICATION_JSON)
+    private val imageHttpClient = createService(HttpClient::class.java, ContentType.IMAGE_PNG)
+
+
+    suspend fun getImg(uuid: String): ByteArray {
+        return withContext(Dispatchers.IO) {
+            try {
+
+
+                val userProfile = jsonHttpClient.roleProperties(uuid).execute().body()!!
+                var textureTemp = ""
+                userProfile.properties?.forEach {
+                    if (it.name == "textures") textureTemp = it.value
+                }
+
+                val texture = String(Base64.decode(textureTemp.toByteArray(), Base64.DEFAULT))
+                val textureUrl = Json.parseToJsonElement(texture)
+                        .jsonObject["textures"]!!
+                        .jsonObject["SKIN"]!!
+                        .jsonObject["url"]!!
+                        .jsonPrimitive.content
+
+
+                val img = imageHttpClient.downloadImage(textureUrl).execute().body()!!
+                return@withContext img.bytes()
+            } catch (e: IOException) {
+                val file = LocalContext.current.resources.openRawResource(R.raw.steve_skin)
+                return@withContext file.readBytes()
+            }
+
+        }
+    }
 
     suspend fun login(email: String, password: String): LoginStatus {
         return withContext(Dispatchers.IO) {
             val job = viewModelScope.launch(Dispatchers.IO) {
-                val jsonHttpClient = createService(HttpClient::class.java, ContentType.APPLICATION_JSON)
-                val imageHttpClient = createService(HttpClient::class.java, ContentType.IMAGE_PNG)
                 val loginRequest = LoginRequest(email, password, requestUser = true)
                 val response = jsonHttpClient.login(loginRequest).execute()
                 if (response.code() == 403) this.cancel("密码错误，或短时间内多次登录失败而被暂时禁止登录").also {
@@ -77,26 +107,8 @@ class UserViewModel(
                         this.cancel("账号下未绑定角色")
                         return@launch
                     }
-                    val userProfile = jsonHttpClient.roleProperties(uuid).execute().body()!!
-
-
-                    var textureTemp = ""
-                    userProfile.properties?.forEach {
-                        if (it.name == "textures") textureTemp = it.value
-                    }
-
-                    val texture = String(Base64.decode(textureTemp.toByteArray(), Base64.DEFAULT))
-                    val textureUrl = Json.parseToJsonElement(texture)
-                        .jsonObject["textures"]!!
-                        .jsonObject["SKIN"]!!
-                        .jsonObject["url"]!!
-                        .jsonPrimitive.content
-
-
-                    val img = imageHttpClient.downloadImage(textureUrl).execute().body()!!
-
                     val saveImg = "$accountPath/$email/$uuid"
-                    val byteArray = img.bytes()
+                    val byteArray = getImg(uuid)
                     File(saveImg).write(byteArray)
 
 
@@ -170,10 +182,10 @@ class UserViewModel(
 
     fun refresh() {
         accountFiles.value = File(accountPath).walk()
-            .maxDepth(1)
-            .filter { it.isFile }
-            .filter { it.extension == "@doctor@" }
-            .toList()
+                .maxDepth(1)
+                .filter { it.isFile }
+                .filter { it.extension == "@doctor@" }
+                .toList()
         accounts.clear()
         accountFiles.value.forEach {
             accounts[it.name.replace(".$fileExtension", "")] = it
@@ -183,14 +195,14 @@ class UserViewModel(
     fun getUserDir(): File = File(accountPath)
 
 
-
 }
 
 enum class LoginStatus(var msg: String) {
     OK(""),
     ERROR(""),
     UNKNOWN(""),
-    WAITING("")
+    WAITING(""),
+    LOGGING_IN("")
 }
 
 

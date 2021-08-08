@@ -22,8 +22,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -35,11 +33,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Account
-import top.fanua.rimuruAndroid.data.User
 import top.fanua.rimuruAndroid.ui.theme.InputColor
 import top.fanua.rimuruAndroid.ui.theme.InputField
 import top.fanua.rimuruAndroid.ui.theme.InputText
@@ -47,7 +43,6 @@ import top.fanua.rimuruAndroid.utils.FileUtils
 import top.fanua.rimuruAndroid.models.LoginStatus.*
 import top.fanua.rimuruAndroid.models.UserViewModel
 import top.fanua.rimuruAndroid.ui.theme.ImageHeader
-import java.io.File
 import java.io.FileNotFoundException
 
 /**
@@ -286,11 +281,7 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                                         }
                                     )
                                 }
-
-
                             }
-
-
                         }
                     }
                 }
@@ -301,9 +292,14 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
             val errorClose = remember { mutableStateOf(false) }
             when (loginStatus) {
                 OK -> loginEmail.value = email
-                ERROR -> Dialog("登录出错", loginStatus.msg, errorClose)
-                UNKNOWN -> Dialog("未知错误", loginStatus.msg, errorClose)
+                ERROR -> Dialog("登录出错", loginStatus.msg, errorClose).also {
+                    loginStatus = WAITING
+                }
+                UNKNOWN -> Dialog("未知错误", loginStatus.msg, errorClose).also {
+                    loginStatus = WAITING
+                }
                 WAITING -> Log.e("", "")
+                LOGGING_IN -> Log.e("", "")
             }
             if (errorClose.value) {
                 loginStatus = WAITING
@@ -333,7 +329,11 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     keyboardController?.hide()
-                    if (password.length >= 8 && email.contains("@").also { email.contains(".") }) {
+                    if (password.length >= 8 &&
+                        email.contains("@").also { email.contains(".") } &&
+                        loginStatus != LOGGING_IN
+                    ) {
+                        loginStatus = LOGGING_IN
                         composableScope.launch(Dispatchers.IO) {
                             loginStatus = userViewModel.login(email, password)
                         }
@@ -450,9 +450,12 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
                     .clickable(
                         indication = null,
                         interactionSource = MutableInteractionSource(),
-                        enabled = (password.length >= 8 && email.contains("@").also { email.contains(".") })
+                        enabled = (password.length >= 8 &&
+                                email.contains("@").also { email.contains(".") } &&
+                                loginStatus != LOGGING_IN)
                     ) {
                         keyboardController?.hide()
+                        loginStatus = LOGGING_IN
                         composableScope.launch(Dispatchers.IO) {
                             loginStatus = userViewModel.login(email, password)
                         }
