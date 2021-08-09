@@ -19,15 +19,13 @@ sealed class Screen(
     val icon: ImageVector
 ) {
     object Home : Screen("home", "主页", Icons.Filled.Home)
-    object Terminal : Screen("terminal", "终端", Icons.Filled.VideoLabel)
     object Settings : Screen("settings", "设置", Icons.Filled.Settings)
     object Chat : Screen("chat", "聊天", Icons.Rounded.ChatBubbleOutline)
-    object Servers : Screen("servers", "服务器", Icons.Rounded.Storage)
 
 
     object Items {
         val list = listOf(
-            Home, Servers, Chat, Terminal, Settings
+            Home, Chat, Settings
         )
     }
 }

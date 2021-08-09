@@ -36,3 +36,4 @@ interface HttpClient {
     @GET
     fun downloadImage(@Url fileUrl: String): Call<ResponseBody>
 }
+

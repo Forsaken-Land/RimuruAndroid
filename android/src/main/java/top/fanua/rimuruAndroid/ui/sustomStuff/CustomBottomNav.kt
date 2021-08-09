@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
@@ -16,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import top.fanua.rimuruAndroid.ui.theme.Theme
 
 /**
  *
@@ -30,7 +32,7 @@ fun CustomBottomNavigation(
     val items = Screen.Items.list
 
     Row(
-        modifier = Modifier.background(MaterialTheme.colors.background)
+        modifier = Modifier.background(Theme.colors.bottomBar)
             .padding(8.dp)
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround,
@@ -52,13 +54,12 @@ fun CustomBottomNavigationItem(
     onClick: () -> Unit
 ) {
 
-    val background = if (isSelected) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
-    val contentColor = if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.onBackground
+//    val background = if (isSelected) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
+    val contentColor = if (isSelected) Theme.colors.iconCurrent else Theme.colors.icon
 
     Box(
         modifier = Modifier.clip(CircleShape)
-            .background(background)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = MutableInteractionSource(), indication = null, onClick = onClick)
 
     ) {
         Row(

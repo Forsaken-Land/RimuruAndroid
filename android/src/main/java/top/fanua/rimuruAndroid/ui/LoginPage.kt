@@ -1,29 +1,32 @@
-@file:Suppress("EXPERIMENTAL_IS_NOT_ENABLED")
-
 package top.fanua.rimuruAndroid.ui
 
-import android.annotation.SuppressLint
-import android.os.Build
+import android.text.TextUtils.replace
 import android.util.Log
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -31,48 +34,36 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import top.fanua.rimuruAndroid.data.Account
-import top.fanua.rimuruAndroid.ui.theme.InputColor
-import top.fanua.rimuruAndroid.ui.theme.InputField
-import top.fanua.rimuruAndroid.ui.theme.InputText
-import top.fanua.rimuruAndroid.utils.FileUtils
 import top.fanua.rimuruAndroid.models.LoginStatus.*
-import top.fanua.rimuruAndroid.models.UserViewModel
-import top.fanua.rimuruAndroid.ui.theme.ImageHeader
-import java.io.FileNotFoundException
+import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.models.get
+import top.fanua.rimuruAndroid.ui.theme.*
 
 /**
  *
  * @author Doctor_Yin
- * @since 2021/8/4:18:49
+ * @since 2021/8/9:3:10
  */
-@SuppressLint("NewApi")
-@OptIn(ExperimentalComposeUiApi::class)
-@RequiresApi(Build.VERSION_CODES.N)
+@OptIn(ExperimentalComposeUiApi::class, androidx.compose.animation.ExperimentalAnimationApi::class)
 @Composable
-fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
-    val composableScope = rememberCoroutineScope()
-    val accounts = userViewModel.accounts
-    val userDir = userViewModel.getUserDir()
-    if (!userDir.exists()) userDir.mkdirs()
-    userViewModel.refresh()
+fun LoginPage() {
+    var isLoginStatus by remember { mutableStateOf(true) }
 
-
+    val viewModel: RimuruViewModel = viewModel()
     val keyboardController = LocalSoftwareKeyboardController.current
+
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    var onlyOne by remember { mutableStateOf(true) }
-    if (accounts.isNotEmpty() && onlyOne && email.isEmpty() && password.isEmpty()) {
-        val user = FileUtils.readFile<Account>(accounts.values.toList()[0])
-        email = user.email
-        password = user.password
-        onlyOne = false
-    }
+
     val emailInteractionSource = remember {
         MutableInteractionSource()
     }
@@ -81,404 +72,284 @@ fun LoginPage(userViewModel: UserViewModel, loginEmail: MutableState<String>) {
     }
     val isEmailWillWrite = emailInteractionSource.collectIsFocusedAsState().value
     val isPasswordWillWrite = passwordInteractionSource.collectIsFocusedAsState().value
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 80.dp)
-            .height(800.dp)
-    ) {
-        Row(
+
+
+    var showPassword by remember { mutableStateOf(false) }
+    var canLogin by remember { mutableStateOf(false) }
+
+    canLogin = (password.length >= 8) &&
+            email.contains("@") &&
+            email.contains(".")
+
+
+    var showImg by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth(0.6f),
-            horizontalArrangement = Arrangement.SpaceAround
+                .offset(y = 40.dp)
+                .fillMaxWidth()
+
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Person,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
 
-            )
-            Text(
-                text = "MC-Robot",
-                fontSize = 30.sp,
-                maxLines = 1,
-                color = Color.Gray
-            )
+                )
+                Text(
+                    text = "MC-Robot",
+                    fontSize = 30.sp,
+                    maxLines = 1,
+                    color = Color.Gray
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(0.8f).height(20.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text("by:遗落之地", color = Color.LightGray)
+            }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(0.8f).fillMaxHeight(0.1f),
-            horizontalArrangement = Arrangement.End
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = 150.dp)
         ) {
-            Text("by:遗落之地", color = Color.LightGray)
-        }
+            Box(Modifier.width(320.dp).height(60.dp).offset(y = (-10).dp)) {
+                TextField(
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight().align(alignment = Alignment.Center),
+                    value = email,
+                    onValueChange = {
+                        email = it.replace(" ", "").replace("\n", "")
+                    },
+                    leadingIcon = { Surface(Modifier.size(75.dp), color = Color.Transparent) { } },
+                    trailingIcon = { Surface(Modifier.size(75.dp), color = Color.Transparent) { } },
+                    placeholder = {
+                        if (!isEmailWillWrite) InputText("输入邮箱")
+                    },
+                    readOnly = !isLoginStatus,
+                    shape = RoundedCornerShape(30.dp),
+                    singleLine = true,
+                    maxLines = 1,
+                    colors = TransparentInputField(),
+                    textStyle = TextStyle(textAlign = TextAlign.Center, fontSize = 18.sp),
+                    interactionSource = emailInteractionSource,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Email),
+                )
 
-        var showAccount by remember { mutableStateOf(false) }
-        if (accounts.isEmpty()) showAccount = false
 
-        TextField(
-            modifier = Modifier.width(320.dp),
-            value = email,
-            onValueChange = {
-                email = it.replace(" ", "").replace("\n", "")
-            },
-            placeholder = {
-                if (!isEmailWillWrite) InputText("输入邮箱")
-            },
-            shape = RoundedCornerShape(30.dp),
-            singleLine = true,
-            maxLines = 1,
-            colors = InputField(),
-            textStyle = TextStyle(textAlign = TextAlign.Center).copy(fontSize = 18.sp),
-            interactionSource = emailInteractionSource,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Email),
-            trailingIcon = {
-                Row {
-                    if (accounts.isEmpty()) {
-                        if (!isEmailWillWrite) Surface(
-                            color = Color.Transparent,
-                            modifier = Modifier.padding(horizontal = 10.dp).size(40.dp)
-                        ) { }
-                        if (isEmailWillWrite && email.isEmpty()) Surface(
-                            color = Color.Transparent,
-                            modifier = Modifier.padding(horizontal = 10.dp).size(40.dp)
-                        ) { }
-                    }
-                    if (email.isNotEmpty()) {
-                        if (isEmailWillWrite) {
-                            if (accounts.isEmpty()) {
-                                Surface(
-                                    color = Color.Transparent,
-                                    modifier = Modifier.size(20.dp)
-                                ) { }
-                            }
+                var image by remember { mutableStateOf("") }
+                viewModel.accounts.get(email).also {
+                    showImg = if (it != null) {
+                        image = it.imgUrl
+                        true
+                    } else false
+                }
+
+                if (showImg && !showAccount) ImageHeader(image, Modifier.align(Alignment.CenterStart).offset(x = 8.dp))
+
+                if (email.isNotEmpty() && isEmailWillWrite) Icon(
+                    Icons.Rounded.Clear, contentDescription = null, tint = InputColor, modifier =
+                    Modifier.align(Alignment.CenterEnd)
+                        .offset(x = if (viewModel.accounts.isEmpty()) (-25).dp else (-55).dp).size(20.dp)
+                        .clickableWithout(isLoginStatus) {
+                            email = ""
+                            password = ""
+                        }
+                )
+
+                if (viewModel.accounts.isNotEmpty()) Icon(
+                    if (showAccount) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.CenterEnd).offset(x = (-8).dp).size(45.dp)
+                        .clickableWithout(isLoginStatus) {
+                            keyboardController?.hide()
+                            showAccount = !showAccount
+                        },
+                    tint = inputColor2
+                )
+
+
+            }
+            var size by remember { mutableStateOf(0.0) }
+            size = if (viewModel.accounts.size > 5) 60 * 4.5 else viewModel.accounts.size * 60.0
+            AnimatedVisibility(visible = showAccount) {
+                LazyColumn(
+                    Modifier.clip(RoundedCornerShape(10.dp)).width(320.dp)
+                        .height(size.dp).background(inputColor1)
+                ) {
+                    itemsIndexed(viewModel.accounts) { _, account ->
+                        Box(
+                            modifier = Modifier
+                                .width(320.dp)
+                                .height(60.dp)
+                                .clickableWithout(isLoginStatus) {
+                                    email = account.email
+                                    password = account.password
+                                    showAccount = false
+                                }
+                        ) {
+                            ImageHeader(
+                                account.imgUrl,
+                                modifier = Modifier.align(Alignment.CenterStart).offset(x = 10.dp),
+                                size = viewModel.radian.dp
+                            )
+                            Text(
+                                account.email,
+                                modifier = Modifier.width(200.dp).align(Alignment.Center).offset(x = 10.dp),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
                             Icon(
                                 Icons.Rounded.Clear,
                                 contentDescription = null,
                                 tint = InputColor,
-                                modifier = Modifier
-                                    .padding(
-                                        horizontal = if (accounts.isEmpty()) 20.dp else 0.dp
-                                    )
-                                    .offset(
-                                        y = if (accounts.isEmpty()) 0.dp else 10.dp,
-                                        x = if (accounts.isEmpty()) 0.dp else 10.dp
-                                    )
-                                    .size(20.dp).clickable(
-                                        interactionSource = MutableInteractionSource(),
-                                        indication = null
-                                    ) {
-                                        email = ""
-                                        password = ""
+                                modifier = Modifier.align(Alignment.CenterEnd).offset(x = (-15).dp).size(20.dp)
+                                    .clickableWithout(isLoginStatus) {
+                                        viewModel.delAccount(account)
                                         showAccount = false
                                     }
                             )
-                        } else Surface(
-                            color = Color.Transparent,
-                            modifier = Modifier.size(20.dp)
-                        ) { }
-                    } else Surface(color = Color.Transparent, modifier = Modifier.size(15.dp)) {}
-                    if (accounts.isNotEmpty()) Icon(
-                        if (showAccount) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
-                        contentDescription = null,
-                        tint = Color(176, 179, 191),
-                        modifier = Modifier.padding(horizontal = 10.dp).size(40.dp).clickable(
-                            interactionSource = MutableInteractionSource(),
-                            indication = null
-                        ) {
-                            showAccount = !showAccount
-                            keyboardController?.hide()
-                        }
-                    )
-
-                }
-            },
-            leadingIcon = {
-                userViewModel.refresh()
-                if (accounts[email] == null) Surface(
-                    modifier = Modifier.size(45.dp),
-                    color = Color.Transparent
-                ) { } else {
-                    var imgUrl by remember { mutableStateOf("") }
-                    imgUrl = accounts[email]?.let { FileUtils.readFile<Account>(it).imgUrl }.orEmpty()
-                    if (!showAccount) {
-                        ImageHeader(imgUrl)
-                    }
-                }
-                Surface(
-                    color = Color.Transparent,
-                    modifier = Modifier.size(60.dp)
-                ) { }
-                //头像获取
-            }
-        )
-
-
-        var showPassword by remember { mutableStateOf(false) }
-        var warning by remember { mutableStateOf(false) }
-        if (password.length >= 8) warning = false
-
-        if (showAccount) Box {
-            val size: Double = if (accounts.size >= 5) {
-                4.5 * 60
-            } else {
-                accounts.size * 60.0
-            }
-            Surface(
-                modifier = Modifier.padding(top = 10.dp).width(320.dp).height(size.dp),
-                shape = RoundedCornerShape(15.dp)
-            ) {
-                LazyColumn() {
-                    itemsIndexed(accounts.values.toList()) { _, file ->
-                        Surface(
-                            modifier = Modifier.height(60.dp).fillParentMaxWidth(),
-                            color = Color(242, 243, 247)
-                        ) {
-                            var account by remember { mutableStateOf<Account?>(null) }
-                            composableScope.launch(Dispatchers.IO) {
-                                Thread.sleep(10L)
-                                account = try {
-                                    FileUtils.readFile<Account>(file)
-                                } catch (e: FileNotFoundException) {
-                                    null
-                                }
-
-                            }
-                            if (account != null) {
-                                val localEmail = account!!.email
-                                val imgUrl = account!!.imgUrl
-                                val localPassword = account!!.password
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable(
-                                        interactionSource = MutableInteractionSource(),
-                                        indication = null
-                                    ) {
-                                        password = localPassword
-                                        email = localEmail
-                                        showAccount = false
-                                    }
-
-                                ) {
-                                    ImageHeader(imgUrl)
-                                    Text(
-                                        localEmail,
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 20.sp,
-                                        maxLines = 1,
-                                        modifier = Modifier.fillParentMaxWidth(0.6f)
-                                    )
-                                    Icon(
-                                        Icons.Rounded.Clear,
-                                        contentDescription = null,
-                                        tint =
-                                        InputColor,
-                                        modifier = Modifier.size(20.dp).clickable(
-                                            interactionSource = MutableInteractionSource(),
-                                            indication = null
-                                        ) {
-                                            userViewModel.delUser(account!!.email)
-                                        }
-                                    )
-                                }
-                            }
                         }
                     }
                 }
             }
-        }
-        else {
             var loginStatus by remember { mutableStateOf(WAITING) }
-            val errorClose = remember { mutableStateOf(false) }
-            when (loginStatus) {
-                OK -> loginEmail.value = email
-                ERROR -> Dialog("登录出错", loginStatus.msg, errorClose).also {
-                    loginStatus = WAITING
-                }
-                UNKNOWN -> Dialog("未知错误", loginStatus.msg, errorClose).also {
-                    loginStatus = WAITING
-                }
-                WAITING -> Log.e("", "")
-                LOGGING_IN -> Log.e("", "")
+            isLoginStatus = when (loginStatus) {
+                LOGGING_IN -> false
+                else -> true
             }
-            if (errorClose.value) {
-                loginStatus = WAITING
-                errorClose.value = false
-            }
-            TextField(
-                modifier = Modifier.width(320.dp).padding(top = 10.dp),
-                value = password,
-                onValueChange = {
-                    password = it.replace("\n", "").replace(" ", "")
-                },
-                interactionSource = passwordInteractionSource,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                placeholder = {
-                    if (!isPasswordWillWrite) InputText("输入密码")
-                },
-                shape = RoundedCornerShape(30.dp),
-                singleLine = true,
-                colors = InputField(),
-                textStyle = TextStyle(textAlign = TextAlign.Center).copy(
-                    fontSize = 20.sp,
-                    letterSpacing = if (showPassword) 0.sp else 10.sp
-                ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    keyboardController?.hide()
-                    if (password.length >= 8 &&
-                        email.contains("@").also { email.contains(".") } &&
-                        loginStatus != LOGGING_IN
-                    ) {
-                        loginStatus = LOGGING_IN
-                        composableScope.launch(Dispatchers.IO) {
-                            loginStatus = userViewModel.login(email, password)
-                        }
-                    }
-                }),
-                leadingIcon = {
+
+            if (!showAccount) {
+                Box(Modifier.offset(y = 10.dp).width(320.dp).height(60.dp)) {
+                    TextField(
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight().align(alignment = Alignment.Center),
+                        value = password,
+                        readOnly = !isLoginStatus,
+                        onValueChange = {
+                            password = it.replace("\n", "").replace(" ", "")
+                        },
+                        interactionSource = passwordInteractionSource,
+                        leadingIcon = { Surface(Modifier.size(60.dp), color = Color.Transparent) { } },
+                        trailingIcon = { Surface(Modifier.size(60.dp), color = Color.Transparent) { } },
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        placeholder = {
+                            if (!isPasswordWillWrite) InputText("输入密码")
+                        },
+                        shape = RoundedCornerShape(30.dp),
+                        singleLine = true,
+                        colors = TransparentInputField(),
+                        textStyle = TextStyle(textAlign = TextAlign.Center).copy(
+                            fontSize = 20.sp,
+                            letterSpacing = if (showPassword) 0.sp else 10.sp
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                keyboardController?.hide()
+                                if (canLogin && isLoginStatus) {
+                                    loginStatus = LOGGING_IN
+                                    viewModel.viewModelScope.launch(Dispatchers.IO) {
+                                        loginStatus = viewModel.loginAccount(email, password)
+                                        Log.i("登录信息", "$email: $loginStatus")
+                                    }
+                                }
+                            }
+                        )
+                    )
                     if (isPasswordWillWrite) {
-                        if (!showPassword)
-                            Icon(Icons.Rounded.VisibilityOff,
-                                contentDescription = null,
-                                tint = InputColor,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                                    .clickable(
-                                        interactionSource = MutableInteractionSource(),
-                                        indication = null
-                                    ) { showPassword = true }
-                                    .size(20.dp)
-                            )
-                        else Icon(
-                            Icons.Rounded.Visibility,
+                        Icon(if (showPassword) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                             contentDescription = null,
                             tint = InputColor,
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                                .clickable(
-                                    interactionSource = MutableInteractionSource(),
-                                    indication = null
-                                ) { showPassword = false }
+                            modifier = Modifier.align(Alignment.CenterStart).offset(x = 20.dp)
+                                .clickableWithout(isLoginStatus) { showPassword = !showPassword }
                                 .size(20.dp)
                         )
-                    } else
-                        Surface(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.Transparent
-                        ) { }
-                },
-                trailingIcon = {
-                    Row {
-                        if (!isPasswordWillWrite) {
-                            if (password.isNotEmpty()) {
-                                if (password.length >= 8) {
-                                    Surface(
-                                        modifier = Modifier.padding(horizontal = 10.dp).size(20.dp),
-                                        color = Color.Transparent
-                                    ) { }
-                                }
-                                Surface(
-                                    modifier = Modifier.size(5.dp),
-                                    color = Color.Transparent
-                                ) { }
-                            }
+                        if (password.isNotEmpty()) {
+                            Icon(
+                                Icons.Rounded.Clear,
+                                contentDescription = null,
+                                tint = InputColor,
+                                modifier = Modifier.align(Alignment.CenterEnd).offset(x = (-20).dp)
+                                    .clickableWithout(isLoginStatus) {
+                                        password = ""
+                                    }.size(20.dp)
+                            )
                         }
-                        if (password.length > 7)
-                            Surface(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.Transparent
-                            ) { }
-                        if (password.isNotEmpty() && password.length < 8) Icon(
-                            Icons.Rounded.WarningAmber,
-                            contentDescription = null,
-                            tint = Color.Red,
-                            modifier = if (isPasswordWillWrite) Modifier.offset(x = 10.dp).clickable(
-                                interactionSource = MutableInteractionSource(),
-                                indication = null
-                            ) {
-                                warning = !warning
-                            }.size(20.dp) else Modifier.padding(horizontal = 20.dp).clickable(
-                                interactionSource = MutableInteractionSource(),
-                                indication = null
-                            ) {
-                                warning = !warning
-                            }.size(20.dp)
-                        )
-                        if (isPasswordWillWrite && password.isNotEmpty()) Icon(
-                            Icons.Rounded.Clear,
-                            contentDescription = null,
-                            tint = InputColor,
-                            modifier = Modifier.padding(horizontal = 20.dp).clickable(
-                                interactionSource = MutableInteractionSource(),
-                                indication = null
-                            ) {
-                                password = ""
-                            }.size(20.dp)
-                        )
-                        if (password.isEmpty()) {
-                            Surface(
-                                modifier = Modifier.padding(horizontal = 20.dp).size(20.dp),
-                                color = Color.Transparent
-                            ) { }
-                            if (isPasswordWillWrite) {
-                                Surface(
-                                    modifier = Modifier.padding(horizontal = 5.dp).size(10.dp),
-                                    color = Color.Transparent
-                                ) { }
-                            }
-                        }
+
                     }
+                    var showError by remember { mutableStateOf(false) }
+                    if (password.isNotEmpty() && password.length <= 8) Icon(
+                        Icons.Rounded.WarningAmber,
+                        contentDescription = null,
+                        tint = Color.Red,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                            .offset(x = if (isPasswordWillWrite) (-60).dp else (-20).dp)
+                            .clickableWithout(isLoginStatus) {
+                                showError = !showError
+                            }.size(20.dp)
+                    )
+
+                    if (showError && password.length < 8) Text(
+                        text = "密码长度需要8位  当前长度:${password.length}",
+                        textAlign = TextAlign.Center,
+                        color = Color.Red,
+                        maxLines = 1,
+                        fontSize = 12.sp,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+
+
                 }
-            )
-            Row(
-                modifier = Modifier.width(320.dp).height(50.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                if (password.isNotEmpty() && warning) Text(
-                    text = "密码长度需要8位\n 当前长度:${password.length}",
-                    textAlign = TextAlign.Center,
-                    color = Color.Red,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
 
-            Surface(
-                modifier = Modifier.padding(top = 60.dp)
-                    .size(80.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = MutableInteractionSource(),
-                        enabled = (password.length >= 8 &&
-                                email.contains("@").also { email.contains(".") } &&
-                                loginStatus != LOGGING_IN)
-                    ) {
-                        keyboardController?.hide()
-                        loginStatus = LOGGING_IN
-                        composableScope.launch(Dispatchers.IO) {
-                            loginStatus = userViewModel.login(email, password)
-                        }
-
-                    },
-                shape = RoundedCornerShape(40.dp),
-                color = if (password.length >= 8 && email.contains("@")
-                        .also { email.contains(".") }
-                ) Color(90, 189, 225)
-                else Color(231, 236, 242)
-            ) {
                 Icon(
                     imageVector = Icons.Rounded.ArrowForward, contentDescription = null,
-                    tint = White,
-                    modifier = Modifier.padding(28.dp)
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .offset(y = 50.dp)
+                        .clickableWithout(canLogin && isLoginStatus) {
+
+                            keyboardController?.hide()
+                            loginStatus = LOGGING_IN
+                            viewModel.viewModelScope.launch(Dispatchers.IO) {
+                                loginStatus = viewModel.loginAccount(email, password)
+
+                                Log.i("登录信息", "$email: $loginStatus")
+                            }
+
+                        }
+                        .clip(RoundedCornerShape(40.dp))
+                        .background(if (canLogin) Color(90, 189, 225) else Color(231, 236, 242))
+                        .padding(28.dp)
                 )
 
 
             }
+
         }
-
-
     }
+}
 
-
+fun Modifier.clickableWithout(enable: Boolean, onClick: () -> Unit): Modifier {
+    return this.clickable(
+        interactionSource = MutableInteractionSource(),
+        indication = null,
+        onClick = onClick,
+        enabled = enable
+    )
 }
