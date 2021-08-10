@@ -1,8 +1,5 @@
 package top.fanua.rimuruAndroid.data
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,10 +16,10 @@ data class Role(
 
 @Serializable
 data class Server(
-    val host: String,
-    val port: Int,
-    val name: String,
-    val icon: String
+    var host: String,
+    var port: Int,
+    var name: String,
+    var icon: String
 )
 
 @Serializable

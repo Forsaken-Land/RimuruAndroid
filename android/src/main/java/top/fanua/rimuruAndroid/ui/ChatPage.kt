@@ -1,39 +1,52 @@
 package top.fanua.rimuruAndroid.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.accompanist.insets.statusBarsHeight
-import top.fanua.rimuruAndroid.R
+import coil.compose.rememberImagePainter
+import com.google.accompanist.insets.*
+import top.fanua.rimuruAndroid.data.Chat
+import top.fanua.rimuruAndroid.data.Msg
+import top.fanua.rimuruAndroid.data.Role
+import top.fanua.rimuruAndroid.data.User
 import top.fanua.rimuruAndroid.models.ChatViewModel
 import top.fanua.rimuruAndroid.models.RimuruViewModel
-import top.fanua.rimuruAndroid.ui.theme.InputColor
+import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 import top.fanua.rimuruAndroid.ui.theme.Theme
-import top.fanua.rimuruAndroid.ui.theme.TransparentInputField
+import top.fanua.rimuruAndroid.ui.theme.inputColor1
+import top.fanua.rimuruAndroid.utils.toDateStr
 import kotlin.math.roundToInt
 
 /**
@@ -41,33 +54,44 @@ import kotlin.math.roundToInt
  * @author Doctor_Yin
  * @since 2021/8/10:0:09
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ChatPage() {
     val chatViewModel: ChatViewModel = viewModel()
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     if (chatViewModel.currentChat != null) {
         val chat = chatViewModel.currentChat!!
+        chat.msg.sortBy { msg -> msg.time }
         val percentOffset = animateFloatAsState(if (chatViewModel.chatting) 0f else 1f)
-        Scaffold(
-            Modifier.percentOffsetX(percentOffset.value).background(Theme.colors.background),
-            topBar = {
-                TopBar(chat.server.name) { chatViewModel.endChat() }
-            },
-            bottomBar = {
-                ChatBottomBar(chatViewModel)
-            }
-        ) { paddingValues ->
-            LazyColumn(
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                items(chat.msg.size) { index ->
-                    val msg = chat.msg[index]
-//                    MessageItem(msg, shakingTime, chat.msgs.size - index - 1)
+        val scrollState = rememberLazyListState()
+        Surface(
+            Modifier.percentOffsetX(percentOffset.value)
+                .background(Theme.colors.background)
+                .navigationBarsPadding(bottom = false)
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize()) {
+                    Messages(
+                        chat, scrollState, Modifier.weight(1f).background(Theme.colors.chatBackground), chatViewModel.me
+                    )
+                    UserInput(send = {
+                        chatViewModel.sendMessage(it)
+                    })
+                }
+                Column {
+                    Divider(
+                        startIndent = 0.dp,
+                        color = Theme.colors.divider,
+                        thickness = 0.8f.dp
+                    )
+                    TopBar(chat.server.name) {
+                        chatViewModel.endChat()
+                        keyboardController?.hide()
+                    }
                 }
             }
         }
-
     }
 
 }
@@ -79,72 +103,241 @@ fun Modifier.percentOffsetX(percent: Float): Modifier = this.layout { measurable
     }
 }
 
-@Composable
-fun ChatBottomBar(chatViewModel: ChatViewModel) {
-    val viewModel: RimuruViewModel = viewModel()
-    var msg: String by remember { mutableStateOf("") }
-    UserInput(onMessageSent = {
-        msg = it
-    })
-}
+val KeyboardShownKey = SemanticsPropertyKey<Boolean>("KeyboardShownKey")
+var SemanticsPropertyReceiver.keyboardShownProperty by KeyboardShownKey
 
 @Composable
-private fun UserInputText(
-    keyboardType: KeyboardType = KeyboardType.Text,
-    onTextChanged: (TextFieldValue) -> Unit,
-    textFieldValue: TextFieldValue,
-    keyboardShown: Boolean,
-    onTextFieldFocused: (Boolean) -> Unit,
-    focusState: Boolean
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp),
-        horizontalArrangement = Arrangement.End
-    ) {
+fun UserInput(send: (String) -> Unit) {
+    var msg by remember { mutableStateOf("") }
+    var textFieldFocusState by remember { mutableStateOf(false) }
+    val sendMessageEnabled = msg.isNotEmpty()
+    val disabledContentColor =
+        Theme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+    val buttonColors = ButtonDefaults.buttonColors(
+        disabledBackgroundColor = Theme.colors.background,
+        disabledContentColor = disabledContentColor
+    )
+
+    val border = if (!sendMessageEnabled) {
+        BorderStroke(
+            width = 1.dp,
+            color = Theme.colors.onSurface.copy(alpha = 0.12f)
+        )
+    } else {
+        null
+    }
+    Column(Modifier.navigationBarsWithImePadding()) {
+        Divider(
+            startIndent = 0.dp,
+            color = Theme.colors.divider,
+            thickness = 0.8f.dp
+        )
         Surface {
-            Box(
+            Row(
                 modifier = Modifier
-                    .height(48.dp)
-                    .weight(1f)
-                    .align(Alignment.Bottom)
+                    .fillMaxWidth()
+                    .padding(10.dp)
+                    .heightIn(48.dp, 150.dp)
+                    .semantics {
+                        keyboardShownProperty = textFieldFocusState
+                    },
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                var lastFocusState by remember { mutableStateOf(false) }
                 BasicTextField(
-                    value = textFieldValue,
-                    onValueChange = { onTextChanged(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp)
-                        .align(Alignment.CenterStart)
+                    value = msg,
+                    onValueChange = {
+                        msg = if (it.length >= 256) {
+                            msg.substring(0, 255)
+                        } else it
+                    },
+                    modifier = Modifier.fillMaxWidth(0.85f).heightIn(48.dp, 150.dp)
+                        .background(inputColor1, RoundedCornerShape(10.dp))
+                        .padding(10.dp)
                         .onFocusChanged { state ->
-                            if (lastFocusState != state.isFocused) {
-                                onTextFieldFocused(state.isFocused)
-                            }
-                            lastFocusState = state.isFocused
+                            textFieldFocusState = state.isFocused
                         },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = keyboardType,
-                        imeAction = ImeAction.Send
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.None
                     ),
-                    maxLines = 1,
+                    maxLines = 6,
                     cursorBrush = SolidColor(LocalContentColor.current),
                     textStyle = LocalTextStyle.current.copy(color = LocalContentColor.current)
                 )
-
-                val disableContentColor =
-                    MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
-                if (textFieldValue.text.isEmpty() && !focusState) {
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp).offset(x = 5.dp).padding(5.dp),
+                    enabled = sendMessageEnabled,
+                    onClick = {
+                        send(msg)
+                        msg = ""
+                    },
+                    colors = buttonColors,
+                    border = border,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
                     Text(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 16.dp),
-                        text = stringResource(id = R.string.textfield_hint),
-                        style = MaterialTheme.typography.body1.copy(color = disableContentColor)
+                        "发送",
                     )
                 }
             }
         }
     }
+
 }
+
+const val ConversationTestTag = "ConversationTestTag"
+
+@Composable
+fun Messages(
+    chat: Chat,
+    scrollState: LazyListState,
+    modifier: Modifier,
+    role: Role
+) {
+    Box(modifier) {
+        var lastTime by remember { mutableStateOf(0L) }
+        LazyColumn(
+            reverseLayout = false,
+            state = scrollState,
+            contentPadding = rememberInsetsPaddingValues(
+                insets = LocalWindowInsets.current.statusBars,
+                additionalTop = 90.dp
+            ), modifier = Modifier
+                .testTag(ConversationTestTag)
+                .fillMaxSize()
+        ) {
+            itemsIndexed(chat.msg) { index, msg ->
+                if (index == 0) {
+                    lastTime = msg.time
+                    Text(
+                        msg.time.toDateStr("HH:mm"),
+                        fontSize = 8.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (index != 0 && (msg.time - (30 * 1000L)) > lastTime) {
+                    Text(
+                        msg.time.toDateStr("HH:mm"),
+                        fontSize = 8.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                lastTime = msg.time
+
+                MessageItem(msg, role)
+            }
+
+        }
+    }
+
+}
+
+@Composable
+fun MessageItem(
+    msg: Msg,
+    me: Role
+) {
+    val rimuruViewModel: RimuruViewModel = viewModel()
+    if (msg.from.uuid == me.uuid) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            val bubbleColor = Theme.colors.bubbleMe
+            Column {
+                Text(
+                    msg.from.name,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(80.dp).padding(2.dp).align(Alignment.End),
+                    maxLines = 1
+                )
+                Text(
+                    msg.text,
+                    Modifier
+                        .drawBehind {
+                            val bubble = Path().apply {
+                                val rect = RoundRect(
+                                    10.dp.toPx(),
+                                    0f,
+                                    size.width - 10.dp.toPx(),
+                                    size.height,
+                                    4.dp.toPx(),
+                                    4.dp.toPx()
+                                )
+                                addRoundRect(rect)
+                                moveTo(size.width - 10.dp.toPx(), 8.dp.toPx())
+                                lineTo(size.width - 5.dp.toPx(), 8.dp.toPx())
+                                lineTo(size.width - 10.dp.toPx(), 20.dp.toPx())
+                                close()
+                            }
+                            drawPath(bubble, bubbleColor)
+                        }
+                        .padding(20.dp, 10.dp).widthIn(max = 280.dp),
+                    color = Theme.colors.textPrimaryMe
+                )
+            }
+            Image(
+                rememberImagePainter(data = msg.from.icon),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(rimuruViewModel.radian.dp))
+            )
+        }
+    } else {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Image(
+                rememberImagePainter(data = msg.from.icon),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(rimuruViewModel.radian.dp))
+            )
+            val bubbleColor = Theme.colors.bubbleOthers
+            Column {
+                Text(
+                    msg.from.name,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(80.dp).padding(2.dp).align(Alignment.Start),
+                    maxLines = 1
+                )
+                Text(
+                    msg.text,
+                    Modifier
+                        .drawBehind {
+                            val bubble = Path().apply {
+                                val rect = RoundRect(
+                                    10.dp.toPx(),
+                                    0f,
+                                    size.width - 10.dp.toPx(),
+                                    size.height,
+                                    4.dp.toPx(),
+                                    4.dp.toPx()
+                                )
+                                addRoundRect(rect)
+                                moveTo(10.dp.toPx(), 8.dp.toPx())
+                                lineTo(5.dp.toPx(), 8.dp.toPx())
+                                lineTo(10.dp.toPx(), 20.dp.toPx())
+                                close()
+                            }
+                            drawPath(bubble, bubbleColor)
+                        }
+                        .padding(20.dp, 10.dp).widthIn(max = 320.dp),
+                    color = Theme.colors.textPrimary
+                )
+            }
+        }
+    }
+}
+
+
+

@@ -1,12 +1,14 @@
 package top.fanua.rimuruAndroid.models
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import top.fanua.rimuruAndroid.data.Account
+import top.fanua.rimuruAndroid.data.Server
 import top.fanua.rimuruAndroid.models.LoginStatus
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.Theme
@@ -23,13 +25,25 @@ class RimuruViewModel : ViewModel() {
     private val accountPath = "/accounts"
     private val loginAccount = "/loginAccount"
     var theme by mutableStateOf(Theme.Type.Light)
-    var loginEmail by mutableStateOf("1921841421@qq.com")
+    var loginEmail by mutableStateOf("")
     var lastEmail by mutableStateOf("")
     var path by mutableStateOf("")
     var accounts by mutableStateOf(
-        mutableListOf<Account>()
+        mutableStateListOf<Account>()
     )
     var radian by mutableStateOf(5)
+    var servers by mutableStateOf(mutableStateListOf<Server>())
+
+    var enableEditHost by mutableStateOf(false)
+    fun addServer(server: Server) {
+        servers.forEach {
+            if (it.host == server.host && it.port == server.port) {
+                return
+            }
+        }
+
+        servers.add(server)
+    }
 
     fun delAccount(account: Account) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -44,7 +58,7 @@ class RimuruViewModel : ViewModel() {
             .filter { it.isFile }
             .filter { it.extension == "@doctor@" }
             .toList()
-        val localAccount = mutableListOf<Account>()
+        val localAccount = mutableStateListOf<Account>()
         localFiles.forEach { file ->
             localAccount.add(FileUtils.readFile(file))
         }
@@ -75,6 +89,13 @@ class RimuruViewModel : ViewModel() {
         } else if (job.isCompleted) {
             LoginStatus.OK
         } else LoginStatus.UNKNOWN
+    }
+
+    fun signOut() {
+        viewModelScope.launch(Dispatchers.IO) {
+            lastEmail = loginEmail
+            loginEmail = ""
+        }
     }
 }
 

@@ -22,7 +22,7 @@ fun SettingsPage() {
     Box(Modifier.fillMaxSize()) {
         val rimuruViewModel: RimuruViewModel = viewModel()
         Button(onClick = {
-
+            rimuruViewModel.signOut()
         }) {
             Text("登出")
         }

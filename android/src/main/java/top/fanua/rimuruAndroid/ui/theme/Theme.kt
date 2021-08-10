@@ -57,6 +57,12 @@ private val LightColorPalette = RimuruColors(
     iconCurrent = blue,
     timeText = textColor,
     divider = white2,
+    onSurface = black1,
+    textPrimary = black1,
+    textPrimaryMe = white1,
+    bubbleMe = blue,
+    bubbleOthers = white1,
+    chatBackground = white3,
 )
 
 //private val DarkColorPalette = RimuruColors(
@@ -79,6 +85,12 @@ class RimuruColors(
     iconCurrent: Color,
     timeText: Color,
     divider: Color,
+    onSurface: Color,
+    textPrimary: Color,
+    textPrimaryMe: Color,
+    bubbleMe: Color,
+    bubbleOthers: Color,
+    chatBackground: Color,
 ) {
     var bottomBar: Color by mutableStateOf(bottomBar)
         private set
@@ -92,7 +104,18 @@ class RimuruColors(
         private set
     var divider: Color by mutableStateOf(divider)
         private set
-
+    var onSurface: Color by mutableStateOf(onSurface)
+        private set
+    var bubbleMe: Color by mutableStateOf(bubbleMe)
+        private set
+    var bubbleOthers: Color by mutableStateOf(bubbleOthers)
+        private set
+    var textPrimary: Color by mutableStateOf(textPrimary)
+        private set
+    var textPrimaryMe: Color by mutableStateOf(textPrimaryMe)
+        private set
+    var chatBackground: Color by mutableStateOf(chatBackground)
+        private set
 }
 
 @Composable
@@ -106,13 +129,25 @@ fun Theme(theme: Theme.Type = Theme.Type.Light, content: @Composable () -> Unit)
     val iconCurrent = animateColorAsState(targetColors.iconCurrent, TweenSpec(600))
     val timeText = animateColorAsState(targetColors.timeText, TweenSpec(600))
     val divider = animateColorAsState(targetColors.divider, TweenSpec(600))
+    val onSurface = animateColorAsState(targetColors.onSurface, TweenSpec(600))
+    val bubbleMe = animateColorAsState(targetColors.bubbleMe, TweenSpec(600))
+    val bubbleOthers = animateColorAsState(targetColors.bubbleOthers, TweenSpec(600))
+    val textPrimary = animateColorAsState(targetColors.textPrimary, TweenSpec(600))
+    val textPrimaryMe = animateColorAsState(targetColors.textPrimaryMe, TweenSpec(600))
+    val chatBackground = animateColorAsState(targetColors.chatBackground, TweenSpec(600))
     val colors = RimuruColors(
         bottomBar = bottomBar.value,
         background = background.value,
         icon = icon.value,
         iconCurrent = iconCurrent.value,
         timeText = timeText.value,
-        divider = divider.value
+        divider = divider.value,
+        onSurface = onSurface.value,
+        bubbleMe = bubbleMe.value,
+        bubbleOthers = bubbleOthers.value,
+        textPrimary = textPrimary.value,
+        textPrimaryMe = textPrimaryMe.value,
+        chatBackground = chatBackground.value
     )
 
     CompositionLocalProvider(LocalRimuruColors provides colors) {

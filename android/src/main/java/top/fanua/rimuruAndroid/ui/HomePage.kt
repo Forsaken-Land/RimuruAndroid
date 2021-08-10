@@ -33,7 +33,6 @@ fun Home() {
                     CustomBottomNavigation(currentScreenId = rimuruViewModel.currentScreen.id) {
                         rimuruViewModel.currentScreen = it
                     }
-
                 }
             ) {
                 when (rimuruViewModel.currentScreen) {

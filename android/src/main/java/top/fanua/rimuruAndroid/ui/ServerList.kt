@@ -12,8 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ColorLens
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIos
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,10 +24,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.statusBarsPadding
 import top.fanua.rimuruAndroid.data.Chat
+import top.fanua.rimuruAndroid.data.Server
 import top.fanua.rimuruAndroid.models.ChatViewModel
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.theme.Theme.Type.*
+import top.fanua.rimuruAndroid.utils.toDateStr
 
 
 /**
@@ -38,10 +41,12 @@ import top.fanua.rimuruAndroid.ui.theme.Theme.Type.*
 fun ServerList() {
     val chatViewModel: ChatViewModel = viewModel()
     val rimuruViewModel: RimuruViewModel = viewModel()
-    Column() {
-        TopBar("聊天")
+    Box {
         LazyColumn {
             itemsIndexed(chatViewModel.chatList.toList()) { index, item ->
+                if (index == 0) {
+                    Spacer(Modifier.height(48.dp).fillMaxWidth())
+                }
                 ChatListItem(item, rimuruViewModel)
                 if (index < chatViewModel.chatList.size - 1) {
                     Divider(
@@ -54,6 +59,16 @@ fun ServerList() {
 
             }
         }
+        Column {
+            TopBar("聊天")
+            Divider(
+                startIndent = 0.dp,
+                color = Theme.colors.divider,
+                thickness = 0.8f.dp
+            )
+        }
+
+
     }
 
 }
@@ -66,7 +81,7 @@ private fun ChatListItem(
     val chatViewModel: ChatViewModel = viewModel()
     Row(
         Modifier.fillMaxWidth().height(60.dp)
-            .clickable(indication = LocalIndication.current, interactionSource = MutableInteractionSource()) {
+            .clickable {
                 chatViewModel.startChat(item)
             }
     ) {
@@ -84,18 +99,20 @@ private fun ChatListItem(
                     item.server.name,
                     fontSize = 15.sp
                 )
-
-                Text(
-                    item.msg.last().time.toString(),
+                if (item.msg.isNotEmpty()) Text(
+                    item.msg.last().time.toDateStr("HH:mm"),
                     color = Theme.colors.timeText,
                     fontSize = 8.sp,
                     modifier = Modifier.width(60.dp)
                 )
+
+
             }
-            Row {
+            if (item.msg.isNotEmpty()) Row {
                 Text(
-                    "${item.msg.last().from.name}: ${item.msg.last().text}",
+                    "${item.msg.last().from.name}: ${item.msg.last().text.replace("\n", "    ")}",
                     color = Theme.colors.timeText,
+                    maxLines = 1,
                     fontSize = 10.sp
                 )
                 //TODO
@@ -107,9 +124,10 @@ private fun ChatListItem(
 
 @Composable
 fun TopBar(title: String, onBack: (() -> Unit)? = null) {
+    val rimuruViewModel: RimuruViewModel = viewModel()
     Box(
         Modifier
-            .background(Theme.colors.background.copy(alpha = 0.8f))
+            .background(Theme.colors.background.copy(alpha = 0.9f))
             .fillMaxWidth()
             .statusBarsPadding()
     ) {
@@ -128,10 +146,33 @@ fun TopBar(title: String, onBack: (() -> Unit)? = null) {
                         .padding(8.dp),
                     tint = Theme.colors.icon
                 )
+            } else {
+                var addServer by remember { mutableStateOf(false) }
+                if (addServer) {
+                    AddServerPage {
+                        addServer = if (it != null) {
+                            rimuruViewModel.addServer(it)
+                            false
+                        } else {
+                            false
+                        }
+                    }
+                }
+                Icon(
+                    Icons.Rounded.Add,
+                    null,
+                    Modifier
+                        .clickable(onClick = {
+                            addServer = true
+                        })
+                        .align(Alignment.CenterVertically)
+                        .size(36.dp)
+                        .padding(8.dp),
+                    tint = Theme.colors.icon
+                )
             }
             Spacer(Modifier.weight(1f))
             val viewModel: RimuruViewModel = viewModel()
-
             Icon(
                 Icons.Outlined.ColorLens,
                 "切换主题",

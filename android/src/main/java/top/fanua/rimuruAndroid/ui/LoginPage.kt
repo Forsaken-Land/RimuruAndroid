@@ -226,9 +226,21 @@ fun LoginPage() {
                 }
             }
             var loginStatus by remember { mutableStateOf(WAITING) }
+            val errorClose = remember { mutableStateOf(false) }
+            if (errorClose.value) {
+                loginStatus = WAITING
+                errorClose.value = false
+            }
             isLoginStatus = when (loginStatus) {
                 LOGGING_IN -> false
                 else -> true
+            }
+            if (isLoginStatus) {
+                if (loginStatus == ERROR) {
+                    Dialog("登录出错", loginStatus.msg, errorClose)
+                } else if (loginStatus == UNKNOWN) {
+                    Dialog("未知错误", loginStatus.msg, errorClose)
+                }
             }
 
             if (!showAccount) {
@@ -328,7 +340,6 @@ fun LoginPage() {
                             loginStatus = LOGGING_IN
                             viewModel.viewModelScope.launch(Dispatchers.IO) {
                                 loginStatus = viewModel.loginAccount(email, password)
-
                                 Log.i("登录信息", "$email: $loginStatus")
                             }
 
