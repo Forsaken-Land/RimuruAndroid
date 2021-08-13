@@ -32,18 +32,18 @@ fun InputText(text: String) {
 }
 
 @Composable
-fun ImageHeader(imgUrl: String, modifier: Modifier = Modifier, size: Dp = 30.dp) {
-    Box(modifier = Modifier.size(45.dp).then(modifier)) {
+fun ImageHeader(imgUrl: String, modifier: Modifier = Modifier, size: Dp = 30.dp, dp: Dp = 45.dp) {
+    Box(modifier = Modifier.size(dp).then(modifier)) {
         Image(
             painter = rememberImagePainter(
                 data = File(imgUrl)
             ), contentDescription = null,
-            modifier = Modifier.size(45.dp).then(modifier).clip(RoundedCornerShape(size))
+            modifier = Modifier.size(dp).then(modifier).clip(RoundedCornerShape(size * (dp / 45.dp)))
         )
         Image(
             painter = rememberImagePainter(data = File("$imgUrl.on")),
             contentDescription = null,
-            modifier = Modifier.size(45.dp).then(modifier).clip(RoundedCornerShape(size)).shadow(1.dp)
+            modifier = Modifier.size(dp).then(modifier).clip(RoundedCornerShape(size * (dp / 45.dp))).shadow(1.dp)
         )
 
 

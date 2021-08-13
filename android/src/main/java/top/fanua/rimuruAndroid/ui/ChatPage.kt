@@ -283,7 +283,7 @@ fun MessageItem(
                 )
             }
 
-            ImageHeader(msg.from.icon, modifier = Modifier.size(40.dp), rimuruViewModel.radian.dp)
+            ImageHeader(msg.from.icon, dp = 40.dp, size = rimuruViewModel.radian.dp)
 
         }
     } else {
@@ -292,7 +292,7 @@ fun MessageItem(
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            ImageHeader(msg.from.icon, modifier = Modifier.size(40.dp), rimuruViewModel.radian.dp)
+            ImageHeader(msg.from.icon, dp = 40.dp, size = rimuruViewModel.radian.dp)
             val bubbleColor = Theme.colors.bubbleOthers
             Column {
                 Text(

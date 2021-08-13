@@ -42,19 +42,26 @@ class RimuruViewModel : ViewModel() {
     var path by mutableStateOf("")
     var accounts by mutableStateOf(listOf<EmailWithPassword>())
     var radian by mutableStateOf(5)
-    var servers by mutableStateOf(mutableStateListOf<Server>())
+    var servers by mutableStateOf(listOf<SaveServer>())
 
     var enableEditHost by mutableStateOf(false)
 
 
     fun addServer(server: Server) {
         servers.forEach {
-            if (it.host == server.host && it.port == server.port) {
-                return
-            }
+            if (server.name == it.name || (server.port == it.port && server.host == it.host)) return
         }
-
-        servers.add(server)
+        viewModelScope.launch(Dispatchers.IO) {
+            accountDao!!.insertSaveServer(
+                SaveServer(
+                    email = loginEmail,
+                    host = server.host,
+                    port = server.port,
+                    icon = "https://www.mcmod.cn/images/favicon.ico",
+                    name = server.name
+                )
+            )
+        }
     }
 
     fun delAccount(account: Account) {
@@ -175,10 +182,8 @@ class RimuruViewModel : ViewModel() {
         }
     }
 
-    var chatList by mutableStateOf(
-        mutableStateListOf<Chat>(
-        )
-    )
+    var chatList by mutableStateOf(listOf<Chat>())
+
     var currentChat: Chat? by mutableStateOf(null)
     var chatting by mutableStateOf(false)
     fun startChat(chat: Chat) {

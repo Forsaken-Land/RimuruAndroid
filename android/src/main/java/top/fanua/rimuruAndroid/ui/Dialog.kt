@@ -110,7 +110,7 @@ fun AddServerPage(server: (Server?) -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (host.isNotEmpty()) {
+                    if (host.isNotEmpty() && serverName.isNotEmpty()) {
                         server(Server(host, port, serverName, ""))
                     }
                 }

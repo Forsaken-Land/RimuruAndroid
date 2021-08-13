@@ -1,5 +1,6 @@
 package top.fanua.rimuruAndroid.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIos
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,11 +24,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.statusBarsPadding
-import top.fanua.rimuruAndroid.data.Chat
+import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.theme.Theme.Type.*
 import top.fanua.rimuruAndroid.utils.toDateStr
+import java.util.stream.Collectors.toList
 
 /**
  *
@@ -36,21 +40,25 @@ import top.fanua.rimuruAndroid.utils.toDateStr
 @Composable
 fun ServerList() {
     val viewModel: RimuruViewModel = viewModel()
+    viewModel.servers = viewModel.accountDao!!.getSaveServers(viewModel.loginEmail)
+        .collectAsState(listOf()).value
     Box {
         LazyColumn {
-            itemsIndexed(viewModel.chatList.toList()) { index, item ->
+            itemsIndexed(viewModel.servers) { index, item ->
+                val chat = viewModel.accountDao!!.getSaveChats(viewModel.loginEmail, item.name)
+                    .collectAsState(null).value?.toChat()
                 if (index == 0) {
                     Spacer(Modifier.height(48.dp).fillMaxWidth())
                 }
-                ChatListItem(item, viewModel)
-                if (index < viewModel.chatList.size - 1) {
+                ChatListItem(chat, item.toServer(), viewModel)
+                if (index < viewModel.servers.size - 1) {
                     Divider(
                         startIndent = 0.dp,
                         color = Theme.colors.divider,
                         thickness = 0.8f.dp
                     )
                 }
-                if (index == viewModel.chatList.size - 1) Spacer(Modifier.height(60.dp).fillMaxWidth())
+                if (index == viewModel.servers.size - 1) Spacer(Modifier.height(60.dp).fillMaxWidth())
 
             }
         }
@@ -68,21 +76,35 @@ fun ServerList() {
 
 }
 
+private fun SaveServer.toServer(): Server {
+    return Server(host, port, name, icon)
+}
+
+private fun ServerWithChats.toChat(): Chat {
+    val chat = mutableListOf<Msg>()
+    chats.forEach {
+        chat.add(Msg(Role(it.uuid, it.name, it.icon), it.text, it.time))
+    }
+    return Chat(Server(server.host, server.port, server.name, server.icon), chat)
+
+}
+
 @Composable
 private fun ChatListItem(
-    item: Chat,
+    item: Chat?,
+    server: Server,
     viewModel: RimuruViewModel
 ) {
     Row(
         Modifier.fillMaxWidth().height(60.dp)
             .clickable {
-                viewModel.startChat(item)
+                viewModel.startChat(item!!)
             }
     ) {
         Image(
-            rememberImagePainter(data = item.server.icon),
+            rememberImagePainter(data = server.icon),
             contentDescription = null,
-            modifier = Modifier.padding(10.dp).clip(RoundedCornerShape(viewModel.radian.dp))
+            modifier = Modifier.size(50.dp).padding(10.dp).clip(RoundedCornerShape(viewModel.radian.dp))
         )
         Column(Modifier.align(Alignment.CenterVertically)) {
             Row(
@@ -90,10 +112,10 @@ private fun ChatListItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    item.server.name,
+                    server.name,
                     fontSize = 15.sp
                 )
-                if (item.msg.isNotEmpty()) Text(
+                if (item != null && item.msg.isNotEmpty()) Text(
                     item.msg.last().time.toDateStr("HH:mm"),
                     color = Theme.colors.timeText,
                     fontSize = 8.sp,
@@ -102,7 +124,7 @@ private fun ChatListItem(
 
 
             }
-            if (item.msg.isNotEmpty()) Row {
+            if (item != null && item.msg.isNotEmpty()) Row {
                 Text(
                     "${item.msg.last().from.name}: ${item.msg.last().text.replace("\n", "    ")}",
                     color = Theme.colors.timeText,

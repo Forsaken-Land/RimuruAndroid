@@ -99,7 +99,7 @@ interface AccountDao {
 
     @Transaction
     @Query("SELECT * FROM SaveServer WHERE email = :email AND name = :name")
-    fun getSaveChats(email: String, name: String): Flow<List<ServerWithChats>>
+    fun getSaveChats(email: String, name: String): Flow<ServerWithChats>
 
     @Query("SELECT * FROM Config WHERE `key` = :key")
     fun getConfig(key: String): Flow<Config>

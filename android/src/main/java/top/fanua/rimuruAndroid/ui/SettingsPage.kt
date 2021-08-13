@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 import kotlin.math.roundToInt
@@ -21,6 +22,7 @@ import kotlin.math.roundToInt
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun SettingsPage() {
+    val composableScope = rememberCoroutineScope()
     Box(Modifier.fillMaxSize()) {
         val rimuruViewModel: RimuruViewModel = viewModel()
         Column(
@@ -35,7 +37,7 @@ fun SettingsPage() {
                 rimuruViewModel.accounts.get(rimuruViewModel.loginEmail)?.saveAccount?.icon?.let {
                     ImageHeader(
                         it,
-                        modifier = Modifier.size(60.dp),
+                        dp = 100.dp,
                         size = rimuruViewModel.radian.dp
                     )
                 }
@@ -52,16 +54,28 @@ fun SettingsPage() {
                 },
                 modifier = Modifier.fillMaxWidth(0.6f)
             )
+            var time by remember { mutableStateOf(0) }
 
             Button(onClick = {
                 rimuruViewModel.signOut()
+                time = 0
+                composableScope.cancel()
             }) {
                 Text("登出")
             }
-            Button(onClick = {
+            Button(enabled = time == 0, onClick = {
                 rimuruViewModel.refreshAccount()
+                composableScope.launch(Dispatchers.IO) {
+                    time = 60
+                    while (true) {
+                        if (time == 0) return@launch
+                        time--
+                        delay(1000L)
+                    }
+                }
             }) {
-                Text("刷新账号信息")
+                if (time > 0) Text("请等待 $time 秒")
+                else Text("刷新账号信息")
             }
         }
 
