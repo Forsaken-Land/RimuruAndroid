@@ -16,6 +16,7 @@ import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
+import top.fanua.rimuruAndroid.ui.toChat
 import top.fanua.rimuruAndroid.utils.ImageUtils
 import top.fanua.rimuruAndroid.utils.UserUtils
 import top.fanua.rimuruAndroid.utils.curTime
@@ -182,7 +183,7 @@ class RimuruViewModel : ViewModel() {
         }
     }
 
-    var chatList by mutableStateOf(listOf<Chat>())
+    var chatList by mutableStateOf(mutableMapOf<ChatMap, ServerWithChats?>())
 
     var currentChat: Chat? by mutableStateOf(null)
     var chatting by mutableStateOf(false)
@@ -196,11 +197,29 @@ class RimuruViewModel : ViewModel() {
     }
 
     fun sendMessage(string: String) {
-        chatList.forEach {
-            if (it == currentChat) {
-                it.msg.add(Msg(me, string, curTime))
+        viewModelScope.launch(Dispatchers.IO) {
+            chatList.map { (email, chat) ->
+                if ((chat != null) && (chat.toChat().server == currentChat!!.server) && (email.email == loginEmail)) {
+                    val user = accounts.get(loginEmail)!!.saveAccount
+                    servers.forEach {
+                        if (it.name == chat.server.name) {
+                            accountDao!!.insertSaveChats(
+                                SaveChat(
+                                    ownerId = it.uid!!,
+                                    text = string,
+                                    time = curTime,
+                                    uuid = user.uuid!!,
+                                    name = user.name!!,
+                                    icon = user.icon!!
+                                )
+                            )
+                        }
+                    }
+
+                }
             }
         }
+
     }
 
     var me by mutableStateOf(Role("", "", ""))
@@ -227,6 +246,11 @@ class RimuruViewModel : ViewModel() {
 
     }
 }
+
+data class ChatMap(
+    val email: String,
+    val name: String
+)
 
 
 

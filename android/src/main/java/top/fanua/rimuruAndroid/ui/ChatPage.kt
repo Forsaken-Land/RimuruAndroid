@@ -59,37 +59,45 @@ fun ChatPage() {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     if (viewModel.currentChat != null) {
-        val chat = viewModel.currentChat!!
-        chat.msg.sortBy { msg -> msg.time }
-        val percentOffset = animateFloatAsState(if (viewModel.chatting) 0f else 1f)
-        val scrollState = rememberLazyListState()
-        Surface(
-            Modifier.percentOffsetX(percentOffset.value)
-                .background(Theme.colors.background)
-                .navigationBarsPadding(bottom = false)
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                Column(Modifier.fillMaxSize()) {
-                    Messages(
-                        chat, scrollState, Modifier.weight(1f).background(Theme.colors.chatBackground), viewModel.me
-                    )
-                    UserInput(send = {
-                        viewModel.sendMessage(it)
-                    })
-                }
-                Column {
-                    Divider(
-                        startIndent = 0.dp,
-                        color = Theme.colors.divider,
-                        thickness = 0.8f.dp
-                    )
-                    TopBar(chat.server.name) {
-                        viewModel.endChat()
-                        keyboardController?.hide()
+        var chat: Chat? by remember { mutableStateOf<Chat?>(null) }
+        chat = viewModel.accountDao!!.getSaveChats(viewModel.loginEmail, viewModel.currentChat!!.server.name)
+            .collectAsState(null).value?.toChat()
+        if (chat != null) {
+            chat!!.msg.sortBy { msg -> msg.time }
+            val percentOffset = animateFloatAsState(if (viewModel.chatting) 0f else 1f)
+            val scrollState = rememberLazyListState()
+            Surface(
+                Modifier.percentOffsetX(percentOffset.value)
+                    .background(Theme.colors.background)
+                    .navigationBarsPadding(bottom = false)
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    Column(Modifier.fillMaxSize()) {
+                        Messages(
+                            chat!!,
+                            scrollState,
+                            Modifier.weight(1f).background(Theme.colors.chatBackground),
+                            viewModel.me
+                        )
+                        UserInput {
+                            viewModel.sendMessage(it)
+                        }
+                    }
+                    Column {
+                        Divider(
+                            startIndent = 0.dp,
+                            color = Theme.colors.divider,
+                            thickness = 0.8f.dp
+                        )
+                        TopBar(chat!!.server.name) {
+                            viewModel.endChat()
+                            keyboardController?.hide()
+                        }
                     }
                 }
             }
         }
+
     }
 
 }

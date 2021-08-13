@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,12 +20,15 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.statusBarsPadding
 import top.fanua.rimuruAndroid.data.*
+import top.fanua.rimuruAndroid.models.ChatMap
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
@@ -46,7 +50,8 @@ fun ServerList() {
         LazyColumn {
             itemsIndexed(viewModel.servers) { index, item ->
                 val chat = viewModel.accountDao!!.getSaveChats(viewModel.loginEmail, item.name)
-                    .collectAsState(null).value?.toChat()
+                    .collectAsState(null).value
+                viewModel.chatList[ChatMap(viewModel.loginEmail, item.name)] = chat
                 if (index == 0) {
                     Spacer(Modifier.height(48.dp).fillMaxWidth())
                 }
@@ -80,7 +85,7 @@ private fun SaveServer.toServer(): Server {
     return Server(host, port, name, icon)
 }
 
-private fun ServerWithChats.toChat(): Chat {
+fun ServerWithChats.toChat(): Chat {
     val chat = mutableListOf<Msg>()
     chats.forEach {
         chat.add(Msg(Role(it.uuid, it.name, it.icon), it.text, it.time))
@@ -89,16 +94,41 @@ private fun ServerWithChats.toChat(): Chat {
 
 }
 
+enum class Status {
+    OPEN, CLOSE
+}
+
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun ChatListItem(
-    item: Chat?,
+    item: ServerWithChats?,
     server: Server,
     viewModel: RimuruViewModel
 ) {
+    var blockSize = 50.dp
+    var blockSizePx = with(LocalDensity.current) { blockSize.toPx() }
+
+    val swipeableState = rememberSwipeableState(initialValue = Status.CLOSE)
     Row(
         Modifier.fillMaxWidth().height(60.dp)
-            .clickable {
-                viewModel.startChat(item!!)
+            .swipeable(
+                state = swipeableState,
+                anchors = mapOf(
+                    0f to Status.CLOSE,
+                    blockSizePx to Status.OPEN
+                ),
+                thresholds = { from, _ ->
+                    if (from == Status.OPEN) {
+                        FractionalThreshold(0.3f)
+                    } else {
+                        FractionalThreshold(0.5f)
+                    }
+                },
+                orientation = Orientation.Horizontal
+            ).offset {
+                IntOffset(swipeableState.offset.value.toInt(), 0)
+            }.clickable {
+                viewModel.startChat(item?.toChat()!!)
             }
     ) {
         Image(
@@ -115,8 +145,8 @@ private fun ChatListItem(
                     server.name,
                     fontSize = 15.sp
                 )
-                if (item != null && item.msg.isNotEmpty()) Text(
-                    item.msg.last().time.toDateStr("HH:mm"),
+                if (item != null && item.toChat().msg.isNotEmpty()) Text(
+                    item.toChat().msg.last().time.toDateStr("HH:mm"),
                     color = Theme.colors.timeText,
                     fontSize = 8.sp,
                     modifier = Modifier.width(60.dp)
@@ -124,9 +154,9 @@ private fun ChatListItem(
 
 
             }
-            if (item != null && item.msg.isNotEmpty()) Row {
+            if (item != null && item.toChat().msg.isNotEmpty()) Row {
                 Text(
-                    "${item.msg.last().from.name}: ${item.msg.last().text.replace("\n", "    ")}",
+                    "${item.toChat().msg.last().from.name}: ${item.toChat().msg.last().text.replace("\n", "    ")}",
                     color = Theme.colors.timeText,
                     maxLines = 1,
                     fontSize = 10.sp
@@ -136,6 +166,8 @@ private fun ChatListItem(
             }
         }
     }
+
+
 }
 
 @Composable

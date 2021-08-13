@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Account
 import top.fanua.rimuruAndroid.data.AppDatabase
+import top.fanua.rimuruAndroid.data.Role
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
 import top.fanua.rimuruAndroid.ui.LoginPage
@@ -57,6 +58,10 @@ class MainActivity : AppCompatActivity() {
             viewModel.accountDao!!.getConfig("loginEmail").collectAsState(null).value?.value.orEmpty()
         viewModel.lastEmail = viewModel.accountDao!!.getConfig("lastEmail").collectAsState(null).value?.value.orEmpty()
         viewModel.accounts = viewModel.accountDao!!.getSaveAccount().collectAsState(mutableListOf()).value
+        val loginUser = viewModel.accounts.get(viewModel.loginEmail)?.saveAccount
+        if (loginUser != null) {
+            viewModel.me = Role(loginUser.uuid.orEmpty(), loginUser.name.orEmpty(), loginUser.icon.orEmpty())
+        }
         viewModel.viewModelScope.launch(Dispatchers.Main) {
             val data = viewModel.accountDao!!.getSaveAccount().firstOrNull()
             val data1 = viewModel.accountDao!!.getSaveServers(viewModel.loginEmail).firstOrNull()
