@@ -1,6 +1,5 @@
 package top.fanua.rimuruAndroid.ui
 
-import android.text.TextUtils.replace
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -9,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -25,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -34,16 +31,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import top.fanua.rimuruAndroid.data.EmailWithPassword
+import top.fanua.rimuruAndroid.data.Password
+import top.fanua.rimuruAndroid.data.SaveAccount
 import top.fanua.rimuruAndroid.models.LoginStatus.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
-import top.fanua.rimuruAndroid.models.get
 import top.fanua.rimuruAndroid.ui.theme.*
 
 /**
@@ -86,38 +84,7 @@ fun LoginPage() {
     var showAccount by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .offset(y = 40.dp)
-                .fillMaxWidth()
-
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(0.6f),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-
-                )
-                Text(
-                    text = "MC-Robot",
-                    fontSize = 30.sp,
-                    maxLines = 1,
-                    color = Color.Gray
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(0.8f).height(20.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Text("by:遗落之地", color = Color.LightGray)
-            }
-        }
+        Header()
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -132,8 +99,8 @@ fun LoginPage() {
                     onValueChange = {
                         email = it.replace(" ", "").replace("\n", "")
                     },
-                    leadingIcon = { Surface(Modifier.size(75.dp), color = Color.Transparent) { } },
-                    trailingIcon = { Surface(Modifier.size(75.dp), color = Color.Transparent) { } },
+                    leadingIcon = { Spacer(Modifier.size(75.dp)) },
+                    trailingIcon = { Spacer(Modifier.size(75.dp)) },
                     placeholder = {
                         if (!isEmailWillWrite) InputText("输入邮箱")
                     },
@@ -151,7 +118,7 @@ fun LoginPage() {
                 var image by remember { mutableStateOf("") }
                 viewModel.accounts.get(email).also {
                     showImg = if (it != null) {
-                        image = it.imgUrl
+                        image = it.saveAccount.icon.toString()
                         true
                     } else false
                 }
@@ -194,18 +161,18 @@ fun LoginPage() {
                                 .width(320.dp)
                                 .height(60.dp)
                                 .clickableWithout(isLoginStatus) {
-                                    email = account.email
-                                    password = account.password
+                                    email = account.password.email
+                                    password = account.password.password
                                     showAccount = false
                                 }
                         ) {
                             ImageHeader(
-                                account.imgUrl,
+                                account.saveAccount.icon.toString(),
                                 modifier = Modifier.align(Alignment.CenterStart).offset(x = 10.dp),
                                 size = viewModel.radian.dp
                             )
                             Text(
-                                account.email,
+                                account.saveAccount.email,
                                 modifier = Modifier.width(200.dp).align(Alignment.Center).offset(x = 10.dp),
                                 textAlign = TextAlign.Center,
                                 maxLines = 1,
@@ -217,7 +184,8 @@ fun LoginPage() {
                                 tint = InputColor,
                                 modifier = Modifier.align(Alignment.CenterEnd).offset(x = (-15).dp).size(20.dp)
                                     .clickableWithout(isLoginStatus) {
-                                        viewModel.delAccount(account)
+
+                                        //TODO
                                         showAccount = false
                                     }
                             )
@@ -356,6 +324,42 @@ fun LoginPage() {
     }
 }
 
+@Composable
+private fun Header() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .offset(y = 40.dp)
+            .fillMaxWidth()
+
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.6f),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Person,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+
+            )
+            Text(
+                text = "MC-Robot",
+                fontSize = 30.sp,
+                maxLines = 1,
+                color = Color.Gray
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(0.8f).height(20.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text("by:遗落之地", color = Color.LightGray)
+        }
+    }
+}
+
 fun Modifier.clickableWithout(enable: Boolean, onClick: () -> Unit): Modifier {
     return this.clickable(
         interactionSource = MutableInteractionSource(),
@@ -364,3 +368,13 @@ fun Modifier.clickableWithout(enable: Boolean, onClick: () -> Unit): Modifier {
         enabled = enable
     )
 }
+
+fun List<EmailWithPassword>.get(string: String): EmailWithPassword? {
+    if (isEmpty()) return null
+    forEach {
+        if (it.saveAccount.email == string) return it
+    }
+    return null
+}
+
+

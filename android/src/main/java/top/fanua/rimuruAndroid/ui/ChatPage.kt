@@ -40,8 +40,6 @@ import com.google.accompanist.insets.*
 import top.fanua.rimuruAndroid.data.Chat
 import top.fanua.rimuruAndroid.data.Msg
 import top.fanua.rimuruAndroid.data.Role
-import top.fanua.rimuruAndroid.data.User
-import top.fanua.rimuruAndroid.models.ChatViewModel
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 import top.fanua.rimuruAndroid.ui.theme.Theme
@@ -57,13 +55,13 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ChatPage() {
-    val chatViewModel: ChatViewModel = viewModel()
+    val viewModel: RimuruViewModel = viewModel()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    if (chatViewModel.currentChat != null) {
-        val chat = chatViewModel.currentChat!!
+    if (viewModel.currentChat != null) {
+        val chat = viewModel.currentChat!!
         chat.msg.sortBy { msg -> msg.time }
-        val percentOffset = animateFloatAsState(if (chatViewModel.chatting) 0f else 1f)
+        val percentOffset = animateFloatAsState(if (viewModel.chatting) 0f else 1f)
         val scrollState = rememberLazyListState()
         Surface(
             Modifier.percentOffsetX(percentOffset.value)
@@ -73,10 +71,10 @@ fun ChatPage() {
             Box(Modifier.fillMaxSize()) {
                 Column(Modifier.fillMaxSize()) {
                     Messages(
-                        chat, scrollState, Modifier.weight(1f).background(Theme.colors.chatBackground), chatViewModel.me
+                        chat, scrollState, Modifier.weight(1f).background(Theme.colors.chatBackground), viewModel.me
                     )
                     UserInput(send = {
-                        chatViewModel.sendMessage(it)
+                        viewModel.sendMessage(it)
                     })
                 }
                 Column {
@@ -86,7 +84,7 @@ fun ChatPage() {
                         thickness = 0.8f.dp
                     )
                     TopBar(chat.server.name) {
-                        chatViewModel.endChat()
+                        viewModel.endChat()
                         keyboardController?.hide()
                     }
                 }
@@ -284,11 +282,9 @@ fun MessageItem(
                     color = Theme.colors.textPrimaryMe
                 )
             }
-            Image(
-                rememberImagePainter(data = msg.from.icon),
-                contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(rimuruViewModel.radian.dp))
-            )
+
+            ImageHeader(msg.from.icon, modifier = Modifier.size(40.dp), rimuruViewModel.radian.dp)
+
         }
     } else {
         Row(
@@ -296,11 +292,7 @@ fun MessageItem(
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            Image(
-                rememberImagePainter(data = msg.from.icon),
-                contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(rimuruViewModel.radian.dp))
-            )
+            ImageHeader(msg.from.icon, modifier = Modifier.size(40.dp), rimuruViewModel.radian.dp)
             val bubbleColor = Theme.colors.bubbleOthers
             Column {
                 Text(

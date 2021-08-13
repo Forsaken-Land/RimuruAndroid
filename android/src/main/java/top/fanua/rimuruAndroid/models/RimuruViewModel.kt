@@ -1,18 +1,25 @@
 package top.fanua.rimuruAndroid.models
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
-import top.fanua.rimuruAndroid.data.Account
-import top.fanua.rimuruAndroid.data.Server
-import top.fanua.rimuruAndroid.models.LoginStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.forEach
+import okhttp3.internal.wait
+import top.fanua.rimuruAndroid.data.*
+import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
+import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
-import top.fanua.rimuruAndroid.utils.FileUtils
+import top.fanua.rimuruAndroid.utils.ImageUtils
+import top.fanua.rimuruAndroid.utils.UserUtils
+import top.fanua.rimuruAndroid.utils.curTime
+import top.fanua.rimuruAndroid.utils.write
 import java.io.File
 
 /**
@@ -21,20 +28,25 @@ import java.io.File
  * @since 2021/8/7:19:00
  */
 class RimuruViewModel : ViewModel() {
+    var loading by mutableStateOf(true)
     var currentScreen by mutableStateOf<Screen>(Screen.Chat)
-    private val accountPath = "/accounts"
-    private val loginAccount = "/loginAccount"
+
+
+    private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
+    private val sessionServer: String = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
+
+    var accountDao: AccountDao? by mutableStateOf(null)
     var theme by mutableStateOf(Theme.Type.Light)
     var loginEmail by mutableStateOf("")
     var lastEmail by mutableStateOf("")
     var path by mutableStateOf("")
-    var accounts by mutableStateOf(
-        mutableStateListOf<Account>()
-    )
+    var accounts by mutableStateOf(listOf<EmailWithPassword>())
     var radian by mutableStateOf(5)
     var servers by mutableStateOf(mutableStateListOf<Server>())
 
     var enableEditHost by mutableStateOf(false)
+
+
     fun addServer(server: Server) {
         servers.forEach {
             if (it.host == server.host && it.port == server.port) {
@@ -47,31 +59,16 @@ class RimuruViewModel : ViewModel() {
 
     fun delAccount(account: Account) {
         viewModelScope.launch(Dispatchers.IO) {
-            accounts.remove(account)
             TODO()
         }
     }
 
-    fun refresh() {
-        val localFiles = File("$path$accountPath").walk()
-            .maxDepth(1)
-            .filter { it.isFile }
-            .filter { it.extension == "@doctor@" }
-            .toList()
-        val localAccount = mutableStateListOf<Account>()
-        localFiles.forEach { file ->
-            localAccount.add(FileUtils.readFile(file))
-        }
-        accounts = localAccount
-
-    }
 
     @OptIn(InternalCoroutinesApi::class)
     suspend fun loginAccount(email: String, password: String): LoginStatus {
         val job = viewModelScope.launch(Dispatchers.IO) {
-            withTimeout(5000L) {
-                delay(6000)
-            }
+            if (accounts.size > 5) cancel("账号过多")
+            updateAccount(email, password)
         }
         while (job.isActive) {
         }
@@ -85,25 +82,146 @@ class RimuruViewModel : ViewModel() {
                     it.msg = job.getCancellationException().message.toString()
                 }
             }
-
         } else if (job.isCompleted) {
+            changeLoginEmail(email)
             LoginStatus.OK
         } else LoginStatus.UNKNOWN
     }
 
+    private suspend fun updateAccount(email: String, password: String) {
+        withTimeout(5000L) {
+            val ygg = UserUtils(authServer, sessionServer)
+
+            val thread = kotlin.runCatching {
+                ygg.loginYgg(email, password)
+            }
+
+            var configList = mutableListOf<String>()
+            thread.fold(
+                onSuccess = {
+                    configList = it as MutableList<String>
+                },
+                onFailure = {
+                    Log.e("error", it.message.orEmpty())
+                    return@withTimeout cancel("密码错误，或短时间内多次登录失败而被暂时禁止登录")
+                }
+            )
+            while (configList.isEmpty()) {
+            }
+            if (configList.size == 1) cancel("账号下未绑定角色")
+
+            val token = configList[0]
+            val name = configList[1]
+            val uuid = configList[2]
+            val textures = configList[3]
+
+            if (textures.isEmpty()) cancel("账号下无皮肤参数")
+
+            //头像相关
+
+            val iconPath = "$path/icons"
+
+            val handler = ImageUtils.downloadImg(textures)
+
+            val onIcon = File("$iconPath/${handler.hash!!}.on")
+            val icon = File("$iconPath/${handler.hash!!}")
+            if (!icon.exists()) icon.write(handler.underBitmap)
+            if (!onIcon.exists()) onIcon.write(handler.onBitmap)
+
+            //保存账号相关
+            val local = accounts.get(email)?.saveAccount
+            if (local != null) {
+                accountDao!!.updateSaveAccount(
+                    local.copy(
+                        accessToken = token,
+                        name = name,
+                        uuid = uuid,
+                        authServer = authServer,
+                        sessionServer = sessionServer,
+                        icon = "$iconPath/${handler.hash!!}"
+                    )
+                )
+                accountDao!!.updatePassword(Password(email, password))
+            } else {
+                accountDao!!.insertSaveAccount(
+                    SaveAccount(
+                        email,
+                        token,
+                        uuid,
+                        name,
+                        "$iconPath/${handler.hash!!}",
+                        10,
+                        authServer,
+                        sessionServer
+                    ), Password(email, password)
+                )
+            }
+
+
+        }
+    }
+
+
     fun signOut() {
         viewModelScope.launch(Dispatchers.IO) {
-            lastEmail = loginEmail
-            loginEmail = ""
+            changeLastEmail(loginEmail)
+            changeLoginEmail()
         }
+    }
+
+    fun refreshAccount() {
+        viewModelScope.launch(Dispatchers.IO) {
+            updateAccount(loginEmail, accounts.get(loginEmail)!!.password.password)
+        }
+    }
+
+    var chatList by mutableStateOf(
+        mutableStateListOf<Chat>(
+        )
+    )
+    var currentChat: Chat? by mutableStateOf(null)
+    var chatting by mutableStateOf(false)
+    fun startChat(chat: Chat) {
+        chatting = true
+        currentChat = chat
+    }
+
+    fun endChat() {
+        chatting = false
+    }
+
+    fun sendMessage(string: String) {
+        chatList.forEach {
+            if (it == currentChat) {
+                it.msg.add(Msg(me, string, curTime))
+            }
+        }
+    }
+
+    var me by mutableStateOf(Role("", "", ""))
+
+    private suspend fun changeLoginEmail(email: String? = null) {
+        val local = accountDao!!.getConfig("loginEmail").firstOrNull()
+        if (local != null) accountDao!!.updateConfig(local.copy(value = email.orEmpty()))
+        else accountDao!!.insertConfig(Config(key = "loginEmail", value = email.orEmpty()))
+    }
+
+    private suspend fun changeLastEmail(email: String? = null) {
+        val local = accountDao!!.getConfig("lastEmail").firstOrNull()
+        if (local != null) accountDao!!.updateConfig(local.copy(value = email.orEmpty()))
+        else accountDao!!.insertConfig(Config(key = "lastEmail", value = email.orEmpty()))
+    }
+
+    fun changeRadian(int: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val local = accounts.get(loginEmail)?.saveAccount
+            if (local != null) {
+                accountDao!!.updateSaveAccount(local.copy(radian = int))
+            }
+        }
+
     }
 }
 
-fun MutableList<Account>.get(string: String): Account? {
-    if (isEmpty()) return null
-    forEach {
-        if (it.email == string) return it
-    }
-    return null
-}
+
 

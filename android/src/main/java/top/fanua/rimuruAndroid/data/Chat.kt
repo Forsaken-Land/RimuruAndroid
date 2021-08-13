@@ -1,6 +1,7 @@
 package top.fanua.rimuruAndroid.data
 
 import kotlinx.serialization.Serializable
+import top.fanua.rimuruAndroid.utils.curTime
 
 /**
  *
@@ -32,5 +33,5 @@ data class Chat(
 data class Msg(
     val from: Role,
     val text: String,
-    val time: Long
+    val time: Long = curTime
 )

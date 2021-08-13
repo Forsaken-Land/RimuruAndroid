@@ -1,7 +1,6 @@
 package top.fanua.rimuruAndroid.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,13 +23,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.statusBarsPadding
 import top.fanua.rimuruAndroid.data.Chat
-import top.fanua.rimuruAndroid.data.Server
-import top.fanua.rimuruAndroid.models.ChatViewModel
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.theme.Theme.Type.*
 import top.fanua.rimuruAndroid.utils.toDateStr
-
 
 /**
  *
@@ -39,23 +35,22 @@ import top.fanua.rimuruAndroid.utils.toDateStr
  */
 @Composable
 fun ServerList() {
-    val chatViewModel: ChatViewModel = viewModel()
-    val rimuruViewModel: RimuruViewModel = viewModel()
+    val viewModel: RimuruViewModel = viewModel()
     Box {
         LazyColumn {
-            itemsIndexed(chatViewModel.chatList.toList()) { index, item ->
+            itemsIndexed(viewModel.chatList.toList()) { index, item ->
                 if (index == 0) {
                     Spacer(Modifier.height(48.dp).fillMaxWidth())
                 }
-                ChatListItem(item, rimuruViewModel)
-                if (index < chatViewModel.chatList.size - 1) {
+                ChatListItem(item, viewModel)
+                if (index < viewModel.chatList.size - 1) {
                     Divider(
                         startIndent = 0.dp,
                         color = Theme.colors.divider,
                         thickness = 0.8f.dp
                     )
                 }
-                if (index == chatViewModel.chatList.size - 1) Spacer(Modifier.height(60.dp).fillMaxWidth())
+                if (index == viewModel.chatList.size - 1) Spacer(Modifier.height(60.dp).fillMaxWidth())
 
             }
         }
@@ -76,19 +71,18 @@ fun ServerList() {
 @Composable
 private fun ChatListItem(
     item: Chat,
-    rimuruViewModel: RimuruViewModel
+    viewModel: RimuruViewModel
 ) {
-    val chatViewModel: ChatViewModel = viewModel()
     Row(
         Modifier.fillMaxWidth().height(60.dp)
             .clickable {
-                chatViewModel.startChat(item)
+                viewModel.startChat(item)
             }
     ) {
         Image(
             rememberImagePainter(data = item.server.icon),
             contentDescription = null,
-            modifier = Modifier.padding(10.dp).clip(RoundedCornerShape(rimuruViewModel.radian.dp))
+            modifier = Modifier.padding(10.dp).clip(RoundedCornerShape(viewModel.radian.dp))
         )
         Column(Modifier.align(Alignment.CenterVertically)) {
             Row(

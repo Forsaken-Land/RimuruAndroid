@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -5,7 +7,7 @@ plugins {
     kotlin("plugin.serialization") version "1.5.21"
 
 
-//    id("kotlin-kapt")
+    id("kotlin-kapt")
 }
 
 apply {
@@ -14,7 +16,9 @@ apply {
 android {
     packagingOptions {
         exclude("META-INF/atomicfu.kotlin_module")
+        exclude("META-INF/io.netty.versions.properties")
         exclude("META-INF/kotlinx-io.kotlin_module")
+        exclude("META-INF/INDEX.LIST")
     }
     compileSdkVersion(31)
 
@@ -23,15 +27,15 @@ android {
         targetSdkVersion(31)
         versionCode = 1
         versionName = version.toString()
-//        javaCompileOptions {
-//            annotationProcessorOptions {
-//                arguments += mapOf(
-//                    "room.schemaLocation" to "$projectDir/schemas",
-//                    "room.incremental" to "true",
-//                    "room.expandProjection" to "true"
-//                )
-//            }
-//        }
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+                    "room.schemaLocation" to "$projectDir/schemas",
+                    "room.incremental" to "true",
+                    "room.expandProjection" to "true"
+                )
+            }
+        }
     }
 
     compileOptions {
@@ -41,19 +45,19 @@ android {
 }
 
 dependencies {
-//    val roomVersion = "2.4.0-alpha03"
-//
-//    implementation("androidx.room:room-runtime:$roomVersion")
-//
-//    // To use Kotlin annotation processing tool (kapt)
-//    kapt("androidx.room:room-compiler:$roomVersion")
-//
-//    // optional - Kotlin Extensions and Coroutines support for Room
-//    implementation("androidx.room:room-ktx:$roomVersion")
-//
-//
-//    // optional - Test helpers
-//    testImplementation("androidx.room:room-testing:$roomVersion")
+    val roomVersion = "2.4.0-alpha03"
+
+    implementation("androidx.room:room-runtime:$roomVersion")
+
+    // To use Kotlin annotation processing tool (kapt)
+    kapt("androidx.room:room-compiler:$roomVersion")
+
+    // optional - Kotlin Extensions and Coroutines support for Room
+    implementation("androidx.room:room-ktx:$roomVersion")
+
+
+    // optional - Test helpers
+    testImplementation("androidx.room:room-testing:$roomVersion")
     val accompanist_version = "0.15.0"
     implementation(project(":common"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
@@ -66,7 +70,10 @@ dependencies {
     implementation("com.google.accompanist:accompanist-insets-ui:$accompanist_version")
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanist_version")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("top.fanua.doctor:doctor-client:1.3.6")
+    implementation("top.fanua.doctor:doctor-all:1.3.4-dev-1")
+//        exclude("io.netty", "netty-buffer")
+//    }
+    implementation("top.limbang.minecraft:yggdrasil:1.0.0")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0-alpha02")
