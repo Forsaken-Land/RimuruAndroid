@@ -59,8 +59,9 @@ class MainActivity : AppCompatActivity() {
         viewModel.accounts = viewModel.accountDao!!.getSaveAccount().collectAsState(mutableListOf()).value
         viewModel.viewModelScope.launch(Dispatchers.Main) {
             val data = viewModel.accountDao!!.getSaveAccount().firstOrNull()
+            val data1 = viewModel.accountDao!!.getSaveServers(viewModel.loginEmail).firstOrNull()
             while (true) {
-                if (data != null) {
+                if (data != null && data1 != null) {
                     viewModel.loading = false
                     break
                 }
