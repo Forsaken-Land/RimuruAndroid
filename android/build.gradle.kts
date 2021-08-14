@@ -71,8 +71,11 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanist_version")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("top.fanua.doctor:doctor-all:1.3.4-dev-1")
+    implementation("top.fanua.doctor:doctor-plugin-forge-core:1.3.4-dev-1")
 //        exclude("io.netty", "netty-buffer")
 //    }
+    implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")
+
     implementation("top.limbang.minecraft:yggdrasil:1.0.0")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha02")

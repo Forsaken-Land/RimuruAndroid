@@ -1,5 +1,6 @@
 package top.fanua.rimuruAndroid.models
 
+import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -10,17 +11,36 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.forEach
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.internal.wait
+import top.fanua.doctor.allLoginPlugin.enableAllLoginPlugin
+import top.fanua.doctor.client.MinecraftClient
+import top.fanua.doctor.client.running.AutoVersionForgePlugin
+import top.fanua.doctor.client.running.PlayerPlugin
+import top.fanua.doctor.client.running.TpsPlugin
+import top.fanua.doctor.client.running.tabcomplete.TabCompletePlugin
+import top.fanua.doctor.client.utils.SecurityUtils
+import top.fanua.doctor.network.api.Connection
+import top.fanua.doctor.network.event.ConnectionEvent
+import top.fanua.doctor.network.handler.onPacket
+import top.fanua.doctor.protocol.definition.login.client.EncryptionResponsePacket
+import top.fanua.doctor.protocol.definition.login.server.DisconnectPacket
+import top.fanua.doctor.protocol.definition.login.server.EncryptionRequestPacket
+import top.fanua.doctor.protocol.definition.play.client.ChatPacket
+import top.fanua.rimuruAndroid.client.ChangeLoginListener
 import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.toChat
-import top.fanua.rimuruAndroid.utils.ImageUtils
-import top.fanua.rimuruAndroid.utils.UserUtils
-import top.fanua.rimuruAndroid.utils.curTime
-import top.fanua.rimuruAndroid.utils.write
+import top.fanua.rimuruAndroid.utils.*
+import top.limbang.minecraft.yggdrasil.YggdrasilApi
+import top.limbang.minecraft.yggdrasil.model.JoinRequest
+import top.limbang.minecraft.yggdrasil.model.Token
 import java.io.File
 
 /**
@@ -47,6 +67,7 @@ class RimuruViewModel : ViewModel() {
 
     var enableEditHost by mutableStateOf(false)
 
+    var clients by mutableStateOf(mutableStateListOf<MinecraftClient>())
 
     fun addServer(server: Server) {
         servers.forEach {
@@ -62,6 +83,16 @@ class RimuruViewModel : ViewModel() {
                     name = server.name
                 )
             )
+        }
+    }
+
+    fun delServer(server: Server) {
+        viewModelScope.launch(Dispatchers.IO) {
+            servers.forEach {
+                if (server.name == it.name && it.email == loginEmail) {
+                    accountDao!!.delSaveServer(it)
+                }
+            }
         }
     }
 
@@ -94,6 +125,80 @@ class RimuruViewModel : ViewModel() {
             changeLoginEmail(email)
             LoginStatus.OK
         } else LoginStatus.UNKNOWN
+    }
+
+    fun validateYggdrasilSession() {
+        val ygg = YggdrasilApi(authServer, sessionServer).createService()
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = ygg.validate(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))
+            if (!ok) {
+                val thread = kotlin.runCatching {
+                    ygg.refresh(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))
+                }
+                thread.fold(
+                    onSuccess = {
+                        val local = accounts.get(loginEmail)?.saveAccount
+                        accountDao!!.updateSaveAccount(
+                            local!!.copy(
+                                accessToken = it.accessToken
+                            )
+                        )
+                    },
+                    onFailure = {
+                        refreshAccount()
+                    }
+                )
+            }
+
+        }
+    }
+
+    fun saveImg(uuid: String): String {
+        var hash = ""
+        viewModelScope.launch(Dispatchers.IO) {
+            val ygg = YggdrasilApi(authServer, sessionServer).createService()
+            val textures = ygg.profile(uuid.replace("-", "")).properties!!.get("textures").orEmpty()
+            val iconPath = "$path/icons"
+            val texture = String(Base64.decode(textures.toByteArray(), Base64.DEFAULT))
+            val textureUrl = Json.parseToJsonElement(texture)
+                .jsonObject["textures"]!!
+                .jsonObject["SKIN"]!!
+                .jsonObject["url"]!!
+                .jsonPrimitive.content
+            hash = textureUrl.substring(textureUrl.lastIndexOf('/'))
+            val onIcon = File("$iconPath/${hash}.on")
+            val icon = File("$iconPath/${hash}")
+            if (!icon.exists()) {
+                val handler = ImageUtils.downloadImg(textures)
+                if (!icon.exists()) icon.write(handler.underBitmap)
+                if (!onIcon.exists()) onIcon.write(handler.onBitmap)
+            }
+        }
+        while (hash.isEmpty()) {
+        }
+        return hash
+    }
+
+    fun encryption(packet: EncryptionRequestPacket, connection: Connection) {
+        runBlocking {
+            val sharedSecret = SecurityUtils.generateSharedKey()
+            val publicKey = SecurityUtils.decodePublicKey(packet.publicKey)
+            val secret = SecurityUtils.encryptRSA(publicKey, sharedSecret.encoded)
+            val verify = SecurityUtils.encryptRSA(publicKey, packet.verifyToken)
+            val serverHash = SecurityUtils.generateAuthHash(packet.serverID, sharedSecret, publicKey)
+            val ygg = YggdrasilApi(authServer, sessionServer).createService()
+
+            ygg.join(
+                JoinRequest(
+                    accounts.get(loginEmail)!!.saveAccount.accessToken!!,
+                    accounts.get(loginEmail)!!.saveAccount.uuid!!,
+                    serverHash
+                )
+            )
+            connection.sendPacket(EncryptionResponsePacket(secret, verify))
+            connection.setEncryptionEnabled(sharedSecret)
+        }
+
     }
 
     private suspend fun updateAccount(email: String, password: String) {
@@ -177,6 +282,45 @@ class RimuruViewModel : ViewModel() {
         }
     }
 
+    fun start() {
+        servers.forEach {
+            if (it.email == loginEmail) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val client = MinecraftClient.builder()
+                        .plugin(ChangeLoginListener(accounts.get(loginEmail)!!.saveAccount.name!!))
+//                        .plugin(AutoVersionForgePlugin())
+//                        .enableAllLoginPlugin()
+                        .build()
+                    Log.e("test", client.start(it.host, it.port, 5000).toString())
+                    client.onPacket<DisconnectPacket> {
+                        Log.e("disconnect", packet.reason)
+                    }
+                    client.on(ConnectionEvent.Disconnect) {
+                        Thread.sleep(1000)
+                        client.reconnect()
+                    }.onPacket<ChatPacket> {
+                        val json = Json.parseToJsonElement(packet.json).jsonObject["extra"] ?: return@onPacket
+                        val text =
+                            json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
+                        val temp =
+                            json.jsonArray[0]
+                                .jsonObject["extra"]!!.jsonArray[1]
+                                .jsonObject["hoverEvent"]!!
+                                .jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
+                        val jsonTemp =
+                            Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
+                        val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
+                        val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
+                        val icon = saveImg(uuid)
+                        sendMessage(text, Role(uuid, name, icon))
+                    }.onPacket<EncryptionRequestPacket> {
+                        encryption(packet, connection)
+                    }
+                }
+            }
+        }
+    }
+
     fun refreshAccount() {
         viewModelScope.launch(Dispatchers.IO) {
             updateAccount(loginEmail, accounts.get(loginEmail)!!.password.password)
@@ -196,11 +340,11 @@ class RimuruViewModel : ViewModel() {
         chatting = false
     }
 
-    fun sendMessage(string: String) {
+    fun sendMessage(string: String, role: Role? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             chatList.map { (email, chat) ->
                 if ((chat != null) && (chat.toChat().server == currentChat!!.server) && (email.email == loginEmail)) {
-                    val user = accounts.get(loginEmail)!!.saveAccount
+                    val user = role ?: accounts.get(loginEmail)!!.saveAccount.toRole()
                     servers.forEach {
                         if (it.name == chat.server.name) {
                             accountDao!!.insertSaveChats(
@@ -208,14 +352,17 @@ class RimuruViewModel : ViewModel() {
                                     ownerId = it.uid!!,
                                     text = string,
                                     time = curTime,
-                                    uuid = user.uuid!!,
-                                    name = user.name!!,
-                                    icon = user.icon!!
+                                    uuid = user.uuid,
+                                    name = user.name,
+                                    icon = if (role != null) {
+                                        "$path/icons/${user.icon}"
+                                    } else {
+                                        user.icon
+                                    }
                                 )
                             )
                         }
                     }
-
                 }
             }
         }

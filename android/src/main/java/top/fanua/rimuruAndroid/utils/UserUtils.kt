@@ -31,7 +31,7 @@ class UserUtils(authServer: String, sessionServer: String) {
 
 }
 
-private fun List<Profile.Properties>.get(index: String): String? {
+fun List<Profile.Properties>.get(index: String): String? {
     forEach {
         if (it.name == index) return it.value
     }

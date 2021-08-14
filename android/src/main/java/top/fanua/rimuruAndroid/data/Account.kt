@@ -29,7 +29,11 @@ data class SaveAccount(
     var radian: Int = 10,
     var authServer: String,
     var sessionServer: String
-)
+) {
+    fun toRole(): Role {
+        return Role(uuid.orEmpty(), name.orEmpty(), icon.orEmpty())
+    }
+}
 
 @Entity(tableName = "Password")
 data class Password(
