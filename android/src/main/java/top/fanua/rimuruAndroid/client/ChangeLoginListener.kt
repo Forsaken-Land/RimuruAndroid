@@ -1,5 +1,6 @@
 package top.fanua.rimuruAndroid.client
 
+import android.util.Log
 import top.fanua.doctor.client.MinecraftClient
 import top.fanua.doctor.client.entity.ForgeFeature
 import top.fanua.doctor.client.entity.ServerInfo
@@ -17,7 +18,7 @@ import top.fanua.doctor.plugin.forge.FML2Plugin
  * @author Doctor_Yin
  * @since 2021/8/14:11:46
  */
-class ChangeLoginListener(val name: String) : ClientPlugin {
+class ChangeLoginListener(val suffix: String, val name: String) : ClientPlugin {
     override lateinit var client: MinecraftClient
     var forgeFeature: ForgeFeature? = null
     lateinit var pluginManager: IPluginManager
@@ -34,15 +35,12 @@ class ChangeLoginListener(val name: String) : ClientPlugin {
             ForgeFeature.FML1 -> pluginManager.registerPlugin(FML1Plugin(serverInfo.forge!!.modMap))
             ForgeFeature.FML2 -> pluginManager.registerPlugin(FML2Plugin(serverInfo.forge!!.modMap))
         }
-
         hostSuffix = if (serverInfo.forge == null) "" else serverInfo.forge!!.forgeFeature.getForgeVersion()
-
     }
 
     override fun registerHook(manager: IPluginHookManager) {
         manager.getHook(ClientAddListenerHook).addHandler(this) {
-            it.message = LoginListener(suffix = hostSuffix, name = name)
-            it.edited = true
+            it.message = LoginListener(suffix = suffix, name = name)
             true
         }
     }

@@ -9,30 +9,28 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.room.Room
 import com.google.accompanist.insets.ProvideWindowInsets
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import top.fanua.doctor.allLoginPlugin.enableAllLoginPlugin
 import top.fanua.doctor.client.MinecraftClient
 import top.fanua.doctor.client.running.AutoVersionForgePlugin
+import top.fanua.doctor.client.running.PlayerPlugin
+import top.fanua.doctor.client.running.TpsPlugin
+import top.fanua.doctor.client.running.tabcomplete.TabCompletePlugin
 import top.fanua.doctor.network.event.ConnectionEvent
 import top.fanua.doctor.network.handler.onPacket
-import top.fanua.doctor.protocol.definition.login.server.EncryptionRequestPacket
 import top.fanua.doctor.protocol.definition.play.client.ChatPacket
+import top.fanua.doctor.protocol.definition.play.client.DisconnectPacket
+import top.fanua.doctor.protocol.definition.play.client.PlayerPositionAndLookPacket
+import top.fanua.doctor.protocol.definition.play.client.STabCompletePacket
 import top.fanua.doctor.protocol.entity.text.ChatSerializer
-import top.fanua.rimuruAndroid.data.Account
 import top.fanua.rimuruAndroid.data.AppDatabase
 import top.fanua.rimuruAndroid.data.Role
-import top.fanua.rimuruAndroid.data.SaveChat
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
 import top.fanua.rimuruAndroid.ui.LoginPage
@@ -57,8 +55,8 @@ class MainActivity : AppCompatActivity() {
                         AppDatabase::class.java, "account-data"
                     ).build().accountDao()
                     Config()
-                    viewModel.start()
                     if (!viewModel.loading) {
+                        viewModel.start()
                         if (viewModel.loginEmail.isNotEmpty()) Home()
                         else LoginPage()
                     }

@@ -66,7 +66,7 @@ fun Dialog(msg1: String, msg2: String, close: MutableState<Boolean>) {
 @Composable
 fun AddServerPage(server: (Server?) -> Unit) {
     val rimuruViewModel: RimuruViewModel = viewModel()
-    var host: String by remember { mutableStateOf("192.168.1.2") }
+    var host: String by remember { mutableStateOf("mc.blackyin.xyz") }
     var port: Int by remember { mutableStateOf(25565) }
     var serverName: String by remember { mutableStateOf("") }
     AlertDialog(

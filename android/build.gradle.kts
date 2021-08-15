@@ -76,11 +76,13 @@ dependencies {
 //    }
     implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")
 
-    implementation("top.limbang.minecraft:yggdrasil:1.0.0")
+    implementation("top.limbang.minecraft:yggdrasil:1.0.1")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0-alpha02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha07")
+    implementation("org.slf4j:slf4j-api:1.7.25")
+    implementation("com.github.tony19:logback-android:2.0.0")
 
 
     implementation(compose.uiTooling)

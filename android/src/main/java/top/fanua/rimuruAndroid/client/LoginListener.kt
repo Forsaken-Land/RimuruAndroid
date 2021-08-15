@@ -1,5 +1,6 @@
 package top.fanua.rimuruAndroid.client
 
+import android.util.Log
 import top.fanua.doctor.client.event.LoginSuccessEvent
 import top.fanua.doctor.client.session.GameProfile
 import top.fanua.doctor.core.api.event.EventEmitter
@@ -23,11 +24,10 @@ import top.fanua.doctor.protocol.definition.login.server.SetCompressionPacket
  */
 class LoginListener(
     private val protocolVersion: Int = 340,
-    var suffix: String = "",
+    var suffix: String,
     val name: String
 ) : EventListener {
     override fun initListen(emitter: EventEmitter) {
-
         emitter.on(ConnectionEvent.Connected) { (ctx) ->
             ctx!!
             val connection = ctx.connection()
