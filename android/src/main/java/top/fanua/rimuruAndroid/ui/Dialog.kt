@@ -67,7 +67,7 @@ fun Dialog(msg1: String, msg2: String, close: MutableState<Boolean>) {
 fun AddServerPage(server: (Server?) -> Unit) {
     val rimuruViewModel: RimuruViewModel = viewModel()
     var host: String by remember { mutableStateOf("mc.blackyin.xyz") }
-    var port: Int by remember { mutableStateOf(25565) }
+    var port: Int? by remember { mutableStateOf(25565) }
     var serverName: String by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = {
@@ -92,14 +92,17 @@ fun AddServerPage(server: (Server?) -> Unit) {
                         Text("地址")
                     }
                 )
-                TextField(port.toString(), onValueChange = { value ->
+                TextField(if (port == null) "" else port.toString(), onValueChange = { value ->
                     port = if (value.length in 1..5) {
-                        val temp = value.filter { it.isDigit() }.toInt()
-                        if (temp > 65535) 65535
-                        else temp
+                        val temp = value.filter { it.isDigit() }.toIntOrNull()
+                        if (temp == null) null
+                        else {
+                            if (temp > 65535) 65535
+                            else temp
+                        }
                     } else if (value.length > 5) {
                         65535
-                    } else 1
+                    } else null
 
                 }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     label = {
@@ -110,8 +113,8 @@ fun AddServerPage(server: (Server?) -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (host.isNotEmpty() && serverName.isNotEmpty()) {
-                        server(Server(host, port, serverName, ""))
+                    if (host.isNotEmpty() && serverName.isNotEmpty() && port != null) {
+                        server(Server(host, port!!, serverName, ""))
                     }
                 }
             ) {
