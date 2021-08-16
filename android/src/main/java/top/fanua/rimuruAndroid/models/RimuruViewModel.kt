@@ -150,7 +150,7 @@ class RimuruViewModel : ViewModel() {
         }
     }
 
-    fun saveImg(uuid: String): String {
+    private fun saveImg(uuid: String): String {
         var hash = ""
         viewModelScope.launch(Dispatchers.IO) {
             val ygg = YggdrasilApi(authServer, sessionServer).createService()
@@ -400,7 +400,7 @@ class RimuruViewModel : ViewModel() {
                             time = curTime,
                             uuid = role.uuid.replace("-", ""),
                             name = role.name,
-                            icon = role.icon
+                            icon = "$path/icons/${role.icon}"
                         )
                     )
                 }
