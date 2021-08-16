@@ -328,27 +328,40 @@ class RimuruViewModel : ViewModel() {
                         Thread.sleep(5000)
                         client.reconnect()
                     }.onPacket<ChatPacket> {
-                        if (!packet.json.contains("translation") && !packet.json.contains("color") && packet.json.contains(
-                                "extra"
-                            )
+                        if (packet.json.contains("\"text\"") &&
+                            packet.json.contains("\"hoverEvent\"") &&
+                            packet.json.contains("\"extra\"") &&
+                            packet.json.contains("\"value\"") &&
+                            packet.json.contains("id") &&
+                            packet.json.contains("name")
                         ) {
-                            val json = Json.parseToJsonElement(packet.json).jsonObject["extra"] ?: return@onPacket
-                            val text: String =
-                                json.jsonArray[1].jsonObject["text"]?.jsonPrimitive?.content ?: return@onPacket
+                            val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
+                            val text =
+                                json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
                             val temp =
                                 json.jsonArray[0]
-                                    .jsonObject["extra"]?.jsonArray?.get(1)
-                                    ?.jsonObject?.get("hoverEvent")?.jsonObject?.get("value")?.jsonObject?.get("text")?.jsonPrimitive?.content
-                                    ?: return@onPacket
+                                    .jsonObject["extra"]!!.jsonArray[1]
+                                    .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
                             val jsonTemp =
                                 Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
-                            val uuid = jsonTemp.jsonObject["id"]?.jsonPrimitive?.content ?: return@onPacket
-                            val name = jsonTemp.jsonObject["name"]?.jsonPrimitive?.content ?: return@onPacket
+                            val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
+                            val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
                             val icon = saveImg(uuid)
                             sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
                         }
                     }
-
+                    while (true) {
+                        delay(5000L)
+                        var del = true
+                        servers.forEach {
+                            if (it == server) del = false
+                        }
+                        if (del) {
+                            client.stop()
+                            break
+                        }
+                        delay(5000L)
+                    }
                 }
             }
         }

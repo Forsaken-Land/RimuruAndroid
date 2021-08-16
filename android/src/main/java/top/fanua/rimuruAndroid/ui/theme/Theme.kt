@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.ProvideWindowInsets
+import top.fanua.rimuruAndroid.models.RimuruViewModel
 import java.io.File
 
 @Composable
