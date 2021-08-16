@@ -11,17 +11,22 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import top.fanua.doctor.allLoginPlugin.enableAllLoginPlugin
 import top.fanua.doctor.client.MinecraftClient
 import top.fanua.doctor.client.running.AutoVersionForgePlugin
 import top.fanua.doctor.client.utils.ServerInfoUtils
 import top.fanua.doctor.network.api.Connection
 import top.fanua.doctor.network.event.ConnectionEvent
+import top.fanua.doctor.network.event.NetLifeCycleEvent
 import top.fanua.doctor.network.handler.onPacket
+import top.fanua.doctor.network.handler.replyPacket
 import top.fanua.doctor.protocol.definition.login.client.EncryptionResponsePacket
-import top.fanua.doctor.protocol.definition.login.server.DisconnectPacket
 import top.fanua.doctor.protocol.definition.login.server.EncryptionRequestPacket
+import top.fanua.doctor.protocol.definition.play.client.CKeepAlivePacket
 import top.fanua.doctor.protocol.definition.play.client.ChatPacket
-import top.fanua.rimuruAndroid.client.ChangeLoginListener
+import top.fanua.doctor.protocol.definition.play.client.DisconnectPacket
+import top.fanua.doctor.protocol.definition.play.client.SKeepAlivePacket
+import top.fanua.rimuruAndroid.client.LoginListener
 import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
@@ -122,7 +127,7 @@ class RimuruViewModel : ViewModel() {
 
     fun validateYggdrasilSession() {
         val ygg = YggdrasilApi(authServer, sessionServer).createService()
-        viewModelScope.launch(Dispatchers.IO) {
+        runBlocking {
             val ok = ygg.validate(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))
             if (!ok) {
                 val thread = kotlin.runCatching {
@@ -142,7 +147,6 @@ class RimuruViewModel : ViewModel() {
                     }
                 )
             }
-
         }
     }
 
@@ -172,7 +176,7 @@ class RimuruViewModel : ViewModel() {
         return hash
     }
 
-    private fun encryption(packet: EncryptionRequestPacket, connection: Connection) {
+    fun encryption(packet: EncryptionRequestPacket, connection: Connection) {
         val sharedSecret = SecurityUtils.generateSharedKey()
         val publicKey = SecurityUtils.decodePublicKey(packet.publicKey)
         val secret = SecurityUtils.encryptRSA(publicKey, sharedSecret.encoded)
@@ -276,12 +280,13 @@ class RimuruViewModel : ViewModel() {
     }
 
     fun start() {
-        servers.forEach {
-            if (it.email == loginEmail) {
+        servers.forEach { server ->
+            if (server.email == loginEmail) {
                 viewModelScope.launch(Dispatchers.IO) {
+                    Thread.sleep(1000L)
                     val jsonStr: String
                     try {
-                        jsonStr = MinecraftClient.ping(it.host, it.port).get(2000, TimeUnit.MILLISECONDS)
+                        jsonStr = MinecraftClient.ping(server.host, server.port).get(2000, TimeUnit.MILLISECONDS)
                     } catch (e: TimeoutException) {
                         cancel("获取ping信息,等待超时...")
                         return@launch
@@ -295,50 +300,55 @@ class RimuruViewModel : ViewModel() {
                         cancel("服务器正在启动，请等待...")
                         return@launch
                     }
+                    Thread.sleep(1000L)
                     val client = MinecraftClient.builder()
                         .plugin(AutoVersionForgePlugin())
-                        .plugin(
-                            ChangeLoginListener(
-                                serverInfo.forge?.forgeFeature?.getForgeVersion() ?: "",
-                                accounts.get(loginEmail)!!.saveAccount.name!!
-                            )
-                        )
+                        .enableAllLoginPlugin()
                         .build()
 
                     clients.forEach { minecraftClient ->
                         if (minecraftClient == client) return@launch
                     }
                     clients.add(client)
-
-                    client.start(it.host, it.port, 5000).toString()
+                    client.start(
+                        server.host,
+                        server.port,
+                        5000,
+                        LoginListener(
+                            protocolVersion = serverInfo.versionNumber,
+                            name = accounts.get(loginEmail)!!.saveAccount.name!!,
+                            suffix = serverInfo.forge?.forgeFeature?.getForgeVersion().orEmpty(),
+                            viewModel = this@RimuruViewModel
+                        )
+                    )
 
                     client.onPacket<DisconnectPacket> {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
-                        Thread.sleep(2000)
+                        Thread.sleep(5000)
                         client.reconnect()
                     }.onPacket<ChatPacket> {
-                        val json = Json.parseToJsonElement(packet.json).jsonObject["extra"] ?: return@onPacket
-                        val text =
-                            json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
-                        val temp =
-                            json.jsonArray[0]
-                                .jsonObject["extra"]!!.jsonArray[1]
-                                .jsonObject["hoverEvent"]!!
-                                .jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
-                        val jsonTemp =
-                            Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
-                        val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
-                        val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
-                        val icon = saveImg(uuid)
-                        sendLocalMessage(text, Role(uuid, name, icon))
-                    }.onPacket<EncryptionRequestPacket> {
-                        encryption(packet, connection)
+                        if (!packet.json.contains("translation") && !packet.json.contains("color") && packet.json.contains(
+                                "extra"
+                            )
+                        ) {
+                            val json = Json.parseToJsonElement(packet.json).jsonObject["extra"] ?: return@onPacket
+                            val text: String =
+                                json.jsonArray[1].jsonObject["text"]?.jsonPrimitive?.content ?: return@onPacket
+                            val temp =
+                                json.jsonArray[0]
+                                    .jsonObject["extra"]?.jsonArray?.get(1)
+                                    ?.jsonObject?.get("hoverEvent")?.jsonObject?.get("value")?.jsonObject?.get("text")?.jsonPrimitive?.content
+                                    ?: return@onPacket
+                            val jsonTemp =
+                                Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
+                            val uuid = jsonTemp.jsonObject["id"]?.jsonPrimitive?.content ?: return@onPacket
+                            val name = jsonTemp.jsonObject["name"]?.jsonPrimitive?.content ?: return@onPacket
+                            val icon = saveImg(uuid)
+                            sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
+                        }
                     }
 
-                    while (true) {
-
-                    }
                 }
             }
         }
@@ -379,29 +389,20 @@ class RimuruViewModel : ViewModel() {
 
     }
 
-    private fun sendLocalMessage(string: String, role: Role? = null) {
+    private fun sendLocalMessage(string: String, role: Role, host: String, port: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            chatList.map { (email, chat) ->
-                if ((chat != null) && (chat.toChat().server == currentChat!!.server) && (email.email == loginEmail)) {
-                    val user = role ?: accounts.get(loginEmail)!!.saveAccount.toRole()
-                    servers.forEach {
-                        if (it.name == chat.server.name) {
-                            accountDao!!.insertSaveChats(
-                                SaveChat(
-                                    ownerId = it.uid!!,
-                                    text = string,
-                                    time = curTime,
-                                    uuid = user.uuid.replace("-", ""),
-                                    name = user.name,
-                                    icon = if (role != null) {
-                                        "$path/icons/${user.icon}"
-                                    } else {
-                                        user.icon
-                                    }
-                                )
-                            )
-                        }
-                    }
+            servers.forEach {
+                if (it.host == host && it.port == port) {
+                    accountDao!!.insertSaveChats(
+                        SaveChat(
+                            ownerId = it.uid!!,
+                            text = string,
+                            time = curTime,
+                            uuid = role.uuid.replace("-", ""),
+                            name = role.name,
+                            icon = role.icon
+                        )
+                    )
                 }
             }
         }

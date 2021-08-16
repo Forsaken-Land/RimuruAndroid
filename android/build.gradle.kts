@@ -70,8 +70,7 @@ dependencies {
     implementation("com.google.accompanist:accompanist-insets-ui:$accompanist_version")
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanist_version")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("top.fanua.doctor:doctor-all:1.3.4-dev-1")
-    implementation("top.fanua.doctor:doctor-plugin-forge-core:1.3.4-dev-1")
+    implementation("top.fanua.doctor:doctor-all:1.3.4-dev-3")
 //        exclude("io.netty", "netty-buffer")
 //    }
     implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")

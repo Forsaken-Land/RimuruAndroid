@@ -3,6 +3,7 @@ package top.fanua.rimuruAndroid.utils
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import android.util.Log
 import androidx.core.graphics.get
 import androidx.core.graphics.set
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,7 @@ object ImageUtils {
                 .jsonObject["textures"]!!
                 .jsonObject["SKIN"]!!
                 .jsonObject["url"]!!
-                .jsonPrimitive.content
+                .jsonPrimitive.content.replace("http://","https://")
             val hash = textureUrl.substring(textureUrl.lastIndexOf('/'))
             val inputStream =
                 OkHttpClient().newCall(Request.Builder().get().url(textureUrl).build()).execute().body!!.byteStream()
