@@ -1,6 +1,9 @@
 package top.fanua.rimuruAndroid.data
 
 import androidx.room.*
+import androidx.room.RoomMasterTable.TABLE_NAME
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
@@ -64,7 +67,8 @@ data class SaveServer(
     var host: String,
     var port: Int,
     var name: String,
-    var icon: String
+    var icon: String,
+    var isLogin: Boolean
 )
 
 @Entity(tableName = "SaveChat")
@@ -129,6 +133,9 @@ interface AccountDao {
     @Update
     fun updateConfig(config: Config)
 
+    @Update
+    fun updateSaveServer(server: SaveServer)
+
     @Delete
     fun delSaveServer(server: SaveServer)
 
@@ -145,9 +152,15 @@ interface AccountDao {
         SaveServer::class,
         SaveChat::class,
         Password::class],
-    version = 1
+    version = 2
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
+}
+
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE SaveServer ADD COLUMN isLogin INTEGER NOT NULL DEFAULT(0)")
+    }
 }
 

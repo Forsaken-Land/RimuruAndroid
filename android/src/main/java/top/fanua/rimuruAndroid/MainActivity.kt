@@ -30,6 +30,7 @@ import top.fanua.doctor.protocol.definition.play.client.PlayerPositionAndLookPac
 import top.fanua.doctor.protocol.definition.play.client.STabCompletePacket
 import top.fanua.doctor.protocol.entity.text.ChatSerializer
 import top.fanua.rimuruAndroid.data.AppDatabase
+import top.fanua.rimuruAndroid.data.MIGRATION_1_2
 import top.fanua.rimuruAndroid.data.Role
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
@@ -53,7 +54,8 @@ class MainActivity : AppCompatActivity() {
                     viewModel.accountDao = Room.databaseBuilder(
                         applicationContext,
                         AppDatabase::class.java, "account-data"
-                    ).build().accountDao()
+                    ).addMigrations(MIGRATION_1_2)
+                        .build().accountDao()
                     Config()
                     if (!viewModel.loading) {
                         viewModel.start()

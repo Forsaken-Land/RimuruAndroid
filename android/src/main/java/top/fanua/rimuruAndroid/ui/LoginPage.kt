@@ -75,8 +75,7 @@ fun LoginPage() {
     var showPassword by remember { mutableStateOf(false) }
     var canLogin by remember { mutableStateOf(false) }
 
-    canLogin = (password.length >= 8) &&
-            email.contains("@") &&
+    canLogin = email.contains("@") &&
             email.contains(".")
 
 
@@ -272,28 +271,6 @@ fun LoginPage() {
                         }
 
                     }
-                    var showError by remember { mutableStateOf(false) }
-                    if (password.isNotEmpty() && password.length <= 8) Icon(
-                        Icons.Rounded.WarningAmber,
-                        contentDescription = null,
-                        tint = Color.Red,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                            .offset(x = if (isPasswordWillWrite) (-60).dp else (-20).dp)
-                            .clickableWithout(isLoginStatus) {
-                                showError = !showError
-                            }.size(20.dp)
-                    )
-
-                    if (showError && password.length < 8) Text(
-                        text = "密码长度需要8位  当前长度:${password.length}",
-                        textAlign = TextAlign.Center,
-                        color = Color.Red,
-                        maxLines = 1,
-                        fontSize = 12.sp,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
-
-
                 }
 
                 Icon(
@@ -303,7 +280,6 @@ fun LoginPage() {
                         .size(80.dp)
                         .offset(y = 50.dp)
                         .clickableWithout(canLogin && isLoginStatus) {
-
                             keyboardController?.hide()
                             loginStatus = LOGGING_IN
                             viewModel.viewModelScope.launch(Dispatchers.IO) {

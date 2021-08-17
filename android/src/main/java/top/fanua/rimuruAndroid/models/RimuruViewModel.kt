@@ -22,10 +22,7 @@ import top.fanua.doctor.network.handler.onPacket
 import top.fanua.doctor.network.handler.replyPacket
 import top.fanua.doctor.protocol.definition.login.client.EncryptionResponsePacket
 import top.fanua.doctor.protocol.definition.login.server.EncryptionRequestPacket
-import top.fanua.doctor.protocol.definition.play.client.CKeepAlivePacket
-import top.fanua.doctor.protocol.definition.play.client.ChatPacket
-import top.fanua.doctor.protocol.definition.play.client.DisconnectPacket
-import top.fanua.doctor.protocol.definition.play.client.SKeepAlivePacket
+import top.fanua.doctor.protocol.definition.play.client.*
 import top.fanua.rimuruAndroid.client.LoginListener
 import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.ui.get
@@ -78,7 +75,8 @@ class RimuruViewModel : ViewModel() {
                     host = server.host,
                     port = server.port,
                     icon = "https://www.mcmod.cn/images/favicon.ico",
-                    name = server.name
+                    name = server.name,
+                    isLogin = false
                 )
             )
         }
@@ -266,8 +264,6 @@ class RimuruViewModel : ViewModel() {
                     ), Password(email, password)
                 )
             }
-
-
         }
     }
 
@@ -280,6 +276,12 @@ class RimuruViewModel : ViewModel() {
     }
 
     fun start() {
+        viewModelScope.launch(Dispatchers.IO) {
+            servers.forEach { server ->
+                server.isLogin = false
+                accountDao!!.updateSaveServer(server)
+            }
+        }
         servers.forEach { server ->
             if (server.email == loginEmail) {
                 viewModelScope.launch(Dispatchers.IO) {
@@ -300,7 +302,6 @@ class RimuruViewModel : ViewModel() {
                         cancel("服务器正在启动，请等待...")
                         return@launch
                     }
-                    Thread.sleep(1000L)
                     val client = MinecraftClient.builder()
                         .plugin(AutoVersionForgePlugin())
                         .enableAllLoginPlugin()
@@ -325,6 +326,8 @@ class RimuruViewModel : ViewModel() {
                     client.onPacket<DisconnectPacket> {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
+                        server.isLogin = false
+                        accountDao!!.updateSaveServer(server)
                         Thread.sleep(5000)
                         client.reconnect()
                     }.onPacket<ChatPacket> {
@@ -349,6 +352,9 @@ class RimuruViewModel : ViewModel() {
                             val icon = saveImg(uuid)
                             sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
                         }
+                    }.onPacket<PlayerPositionAndLookPacket> {
+                        server.isLogin = true
+                        accountDao!!.updateSaveServer(server)
                     }
                     while (true) {
                         delay(5000L)
@@ -398,8 +404,6 @@ class RimuruViewModel : ViewModel() {
                 }
             }
         }
-
-
     }
 
     private fun sendLocalMessage(string: String, role: Role, host: String, port: Int) {
@@ -419,7 +423,6 @@ class RimuruViewModel : ViewModel() {
                 }
             }
         }
-
     }
 
     var me by mutableStateOf(Role("", "", ""))

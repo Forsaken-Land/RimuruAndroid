@@ -53,7 +53,7 @@ fun ChatPage() {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     if (viewModel.currentChat != null) {
-        var chat: Chat? by remember { mutableStateOf<Chat?>(null) }
+        var chat by remember { mutableStateOf<Chat?>(null) }
         chat = viewModel.accountDao!!.getSaveChats(viewModel.loginEmail, viewModel.currentChat!!.server.name)
             .collectAsState(null).value?.toChat()
         if (chat != null) {
@@ -73,7 +73,7 @@ fun ChatPage() {
                             Modifier.weight(1f).background(Theme.colors.chatBackground),
                             viewModel.me
                         )
-                        UserInput {
+                        UserInput(chat!!.server.isLogin) {
                             viewModel.sendMessage(it)
                         }
                     }
@@ -83,7 +83,7 @@ fun ChatPage() {
                             color = Theme.colors.divider,
                             thickness = 0.8f.dp
                         )
-                        TopBar(chat!!.server.name) {
+                        TopBar(chat!!.server.name,chat!!.server.isLogin) {
                             viewModel.endChat()
                             keyboardController?.hide()
                         }
@@ -107,7 +107,7 @@ val KeyboardShownKey = SemanticsPropertyKey<Boolean>("KeyboardShownKey")
 var SemanticsPropertyReceiver.keyboardShownProperty by KeyboardShownKey
 
 @Composable
-fun UserInput(send: (String) -> Unit) {
+fun UserInput(isLogin: Boolean, send: (String) -> Unit) {
     var msg by remember { mutableStateOf("") }
     var textFieldFocusState by remember { mutableStateOf(false) }
     val sendMessageEnabled = msg.isNotEmpty()
@@ -169,7 +169,7 @@ fun UserInput(send: (String) -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(40.dp).offset(x = 5.dp).padding(5.dp),
-                    enabled = sendMessageEnabled,
+                    enabled = sendMessageEnabled && isLogin,
                     onClick = {
                         send(msg)
                         msg = ""
@@ -188,7 +188,6 @@ fun UserInput(send: (String) -> Unit) {
 
 }
 
-const val ConversationTestTag = "ConversationTestTag"
 
 @Composable
 fun Messages(
@@ -200,17 +199,25 @@ fun Messages(
     Box(modifier) {
         var lastTime by remember { mutableStateOf(0L) }
         LazyColumn(
-            reverseLayout = false,
+            reverseLayout = true,
             state = scrollState,
             contentPadding = rememberInsetsPaddingValues(
                 insets = LocalWindowInsets.current.statusBars,
                 additionalTop = 90.dp
             ), modifier = Modifier
-                .testTag(ConversationTestTag)
                 .fillMaxSize()
         ) {
-            itemsIndexed(chat.msg) { index, msg ->
-                if (index == 0) {
+            itemsIndexed(chat.msg.reversed()) { index, msg ->
+                MessageItem(msg, role)
+                if (index != chat.msg.size - 1 && (msg.time - (30 * 1000L)) > lastTime) {
+                    Text(
+                        msg.time.toDateStr("HH:mm"),
+                        fontSize = 8.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (index == chat.msg.size - 1) {
                     lastTime = msg.time
                     Text(
                         msg.time.toDateStr("HH:mm"),
@@ -219,19 +226,8 @@ fun Messages(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                if (index != 0 && (msg.time - (30 * 1000L)) > lastTime) {
-                    Text(
-                        msg.time.toDateStr("HH:mm"),
-                        fontSize = 8.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
                 lastTime = msg.time
-
-                MessageItem(msg, role)
             }
-
         }
     }
 

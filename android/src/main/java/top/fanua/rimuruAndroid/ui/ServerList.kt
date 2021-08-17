@@ -89,7 +89,7 @@ fun ServerList() {
 }
 
 private fun SaveServer.toServer(): Server {
-    return Server(host, port, name, icon)
+    return Server(host, port, name, icon, isLogin)
 }
 
 fun ServerWithChats.toChat(): Chat {
@@ -97,7 +97,7 @@ fun ServerWithChats.toChat(): Chat {
     chats.forEach {
         chat.add(Msg(Role(it.uuid, it.name, it.icon), it.text, it.time))
     }
-    return Chat(Server(server.host, server.port, server.name, server.icon), chat)
+    return Chat(Server(server.host, server.port, server.name, server.icon, server.isLogin), chat)
 
 }
 
@@ -185,7 +185,7 @@ private fun ChatListItem(
                 "删除",
                 modifier = Modifier.fillMaxSize().padding(top = 20.dp, bottom = 20.dp)
                     .clickableWithout(true, onClick = {
-                        viewModel.viewModelScope.launch(Dispatchers.IO){
+                        viewModel.viewModelScope.launch(Dispatchers.IO) {
                             swipeableState.snapTo(Status.CLOSE)
                         }
                         viewModel.delServer(server)
@@ -201,7 +201,7 @@ private fun ChatListItem(
 }
 
 @Composable
-fun TopBar(title: String, onBack: (() -> Unit)? = null) {
+fun TopBar(title: String, isLogin: Boolean? = null, onBack: (() -> Unit)? = null) {
     val rimuruViewModel: RimuruViewModel = viewModel()
     Box(
         Modifier
@@ -266,6 +266,12 @@ fun TopBar(title: String, onBack: (() -> Unit)? = null) {
                 tint = Theme.colors.icon
             )
         }
-        Text(title, Modifier.align(Alignment.Center), color = Theme.colors.timeText)
+        Column(modifier = Modifier.align(Alignment.Center)) {
+            Text(title, color = Theme.colors.timeText)
+            if (onBack != null && isLogin != null) {
+                Text(if (isLogin) "在线" else "离线", color = Theme.colors.timeText)
+            }
+        }
+
     }
 }
