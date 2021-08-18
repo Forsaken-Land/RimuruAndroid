@@ -31,6 +31,7 @@ import top.fanua.doctor.protocol.definition.play.client.STabCompletePacket
 import top.fanua.doctor.protocol.entity.text.ChatSerializer
 import top.fanua.rimuruAndroid.data.AppDatabase
 import top.fanua.rimuruAndroid.data.MIGRATION_1_2
+import top.fanua.rimuruAndroid.data.MIGRATION_2_3
 import top.fanua.rimuruAndroid.data.Role
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel.accountDao = Room.databaseBuilder(
                         applicationContext,
                         AppDatabase::class.java, "account-data"
-                    ).addMigrations(MIGRATION_1_2)
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                         .build().accountDao()
                     Config()
                     if (!viewModel.loading) {

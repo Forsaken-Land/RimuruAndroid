@@ -14,6 +14,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import top.fanua.doctor.allLoginPlugin.enableAllLoginPlugin
 import top.fanua.doctor.client.MinecraftClient
 import top.fanua.doctor.client.running.AutoVersionForgePlugin
+import top.fanua.doctor.client.running.PlayerPlugin
+import top.fanua.doctor.client.running.getPlayerTab
 import top.fanua.doctor.client.utils.ServerInfoUtils
 import top.fanua.doctor.network.api.Connection
 import top.fanua.doctor.network.event.ConnectionEvent
@@ -76,7 +78,8 @@ class RimuruViewModel : ViewModel() {
                     port = server.port,
                     icon = "https://www.mcmod.cn/images/favicon.ico",
                     name = server.name,
-                    isLogin = false
+                    isLogin = false,
+                    online = 0
                 )
             )
         }
@@ -285,6 +288,11 @@ class RimuruViewModel : ViewModel() {
         servers.forEach { server ->
             if (server.email == loginEmail) {
                 viewModelScope.launch(Dispatchers.IO) {
+                    server.online = 0
+                    server.isLogin = false
+                    accountDao!!.updateSaveServer(server)
+                }
+                viewModelScope.launch(Dispatchers.IO) {
                     Thread.sleep(1000L)
                     val jsonStr: String
                     try {
@@ -304,6 +312,7 @@ class RimuruViewModel : ViewModel() {
                     }
                     val client = MinecraftClient.builder()
                         .plugin(AutoVersionForgePlugin())
+                        .plugin(PlayerPlugin())
                         .enableAllLoginPlugin()
                         .build()
 
@@ -326,35 +335,50 @@ class RimuruViewModel : ViewModel() {
                     client.onPacket<DisconnectPacket> {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
-                        server.isLogin = false
-                        accountDao!!.updateSaveServer(server)
-                        Thread.sleep(5000)
-                        client.reconnect()
+                        viewModelScope.launch(Dispatchers.IO){
+                            server.online = 0
+                            server.isLogin = false
+                            accountDao!!.updateSaveServer(server)
+                            Thread.sleep(3000)
+                            client.reconnect()
+                        }
                     }.onPacket<ChatPacket> {
-                        if (packet.json.contains("\"text\"") &&
-                            packet.json.contains("\"hoverEvent\"") &&
-                            packet.json.contains("\"extra\"") &&
-                            packet.json.contains("\"value\"") &&
-                            packet.json.contains("id") &&
-                            packet.json.contains("name")
-                        ) {
-                            val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
-                            val text =
-                                json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
-                            val temp =
-                                json.jsonArray[0]
-                                    .jsonObject["extra"]!!.jsonArray[1]
-                                    .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
-                            val jsonTemp =
-                                Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
-                            val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
-                            val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
-                            val icon = saveImg(uuid)
-                            sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
+                        viewModelScope.launch(Dispatchers.IO){
+                            if (packet.json.contains("\"text\"") &&
+                                packet.json.contains("\"hoverEvent\"") &&
+                                packet.json.contains("\"extra\"") &&
+                                packet.json.contains("\"value\"") &&
+                                packet.json.contains("id") &&
+                                packet.json.contains("name")
+                            ) {
+                                val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
+                                val text =
+                                    json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
+                                val temp =
+                                    json.jsonArray[0]
+                                        .jsonObject["extra"]!!.jsonArray[1]
+                                        .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
+                                val jsonTemp =
+                                    Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
+                                val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
+                                val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
+                                val icon = saveImg(uuid)
+                                sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
+                            }
                         }
                     }.onPacket<PlayerPositionAndLookPacket> {
-                        server.isLogin = true
-                        accountDao!!.updateSaveServer(server)
+                        viewModelScope.launch(Dispatchers.IO){
+                            server.isLogin = true
+                            server.online = client.getPlayerTab().players.size
+                            accountDao!!.updateSaveServer(server)
+                        }
+                    }.onPacket<PlayerListItemPacket> {
+                        viewModelScope.launch(Dispatchers.IO){
+                            Thread.sleep(1000L)
+                            server.online = client.getPlayerTab().players.size
+                            accountDao!!.updateSaveServer(server)
+                        }
+
                     }
                     while (true) {
                         delay(5000L)

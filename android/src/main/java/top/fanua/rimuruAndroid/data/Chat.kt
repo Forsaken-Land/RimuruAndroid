@@ -21,7 +21,8 @@ data class Server(
     var port: Int,
     var name: String,
     var icon: String,
-    var isLogin: Boolean
+    var isLogin: Boolean,
+    var online: Int
 )
 
 @Serializable

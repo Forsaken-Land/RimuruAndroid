@@ -83,7 +83,7 @@ fun ChatPage() {
                             color = Theme.colors.divider,
                             thickness = 0.8f.dp
                         )
-                        TopBar(chat!!.server.name,chat!!.server.isLogin) {
+                        TopBar(chat!!.server.name, chat!!.server.isLogin, chat!!.server.online) {
                             viewModel.endChat()
                             keyboardController?.hide()
                         }
@@ -91,9 +91,7 @@ fun ChatPage() {
                 }
             }
         }
-
     }
-
 }
 
 fun Modifier.percentOffsetX(percent: Float): Modifier = this.layout { measurable, constraints ->

@@ -89,7 +89,7 @@ fun ServerList() {
 }
 
 private fun SaveServer.toServer(): Server {
-    return Server(host, port, name, icon, isLogin)
+    return Server(host, port, name, icon, isLogin, online)
 }
 
 fun ServerWithChats.toChat(): Chat {
@@ -97,7 +97,7 @@ fun ServerWithChats.toChat(): Chat {
     chats.forEach {
         chat.add(Msg(Role(it.uuid, it.name, it.icon), it.text, it.time))
     }
-    return Chat(Server(server.host, server.port, server.name, server.icon, server.isLogin), chat)
+    return Chat(Server(server.host, server.port, server.name, server.icon, server.isLogin, server.online), chat)
 
 }
 
@@ -201,7 +201,7 @@ private fun ChatListItem(
 }
 
 @Composable
-fun TopBar(title: String, isLogin: Boolean? = null, onBack: (() -> Unit)? = null) {
+fun TopBar(title: String, isLogin: Boolean? = null, size: Int = 0, onBack: (() -> Unit)? = null) {
     val rimuruViewModel: RimuruViewModel = viewModel()
     Box(
         Modifier
@@ -267,11 +267,24 @@ fun TopBar(title: String, isLogin: Boolean? = null, onBack: (() -> Unit)? = null
             )
         }
         Column(modifier = Modifier.align(Alignment.Center)) {
-            Text(title, color = Theme.colors.timeText)
+            Text(
+                title,
+                color = Theme.colors.timeText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(120.dp)
+            )
             if (onBack != null && isLogin != null) {
-                Text(if (isLogin) "在线" else "离线", color = Theme.colors.timeText)
+                Text(
+                    if (isLogin) "在线: $size" else "离线",
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(120.dp),
+                    fontSize = 10.sp,
+                    color = Theme.colors.timeText
+                )
             }
         }
+
 
     }
 }

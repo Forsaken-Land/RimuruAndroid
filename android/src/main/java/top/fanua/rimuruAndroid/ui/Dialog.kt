@@ -114,7 +114,7 @@ fun AddServerPage(server: (Server?) -> Unit) {
             TextButton(
                 onClick = {
                     if (host.isNotEmpty() && serverName.isNotEmpty() && port != null) {
-                        server(Server(host, port!!, serverName, "", false))
+                        server(Server(host, port!!, serverName, "", false, 0))
                     }
                 }
             ) {

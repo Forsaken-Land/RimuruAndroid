@@ -68,7 +68,8 @@ data class SaveServer(
     var port: Int,
     var name: String,
     var icon: String,
-    var isLogin: Boolean
+    var isLogin: Boolean,
+    var online: Int
 )
 
 @Entity(tableName = "SaveChat")
@@ -97,10 +98,6 @@ interface AccountDao {
     @Transaction
     @Query("SELECT * FROM SaveAccount")
     fun getSaveAccount(): Flow<List<EmailWithPassword>>
-
-//    @Transaction
-//    @Query("SELECT * FROM SaveAccount WHERE email = :email")
-//    fun getSaveAccount(email: String): EmailWithPassword
 
     @Query("SELECT * FROM SaveServer WHERE email = :email")
     fun getSaveServers(email: String): Flow<List<SaveServer>>
@@ -152,7 +149,7 @@ interface AccountDao {
         SaveServer::class,
         SaveChat::class,
         Password::class],
-    version = 2
+    version = 3
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -161,6 +158,11 @@ abstract class AppDatabase : RoomDatabase() {
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE SaveServer ADD COLUMN isLogin INTEGER NOT NULL DEFAULT(0)")
+    }
+}
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE SaveServer ADD COLUMN online INTEGER NOT NULL DEFAULT(0)")
     }
 }
 
