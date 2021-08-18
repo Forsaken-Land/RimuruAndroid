@@ -31,6 +31,7 @@ import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.toChat
+import top.fanua.rimuruAndroid.ui.toServer
 import top.fanua.rimuruAndroid.utils.*
 import top.limbang.minecraft.yggdrasil.YggdrasilApi
 import top.limbang.minecraft.yggdrasil.model.JoinRequest
@@ -47,7 +48,7 @@ import java.util.concurrent.TimeoutException
  */
 class RimuruViewModel : ViewModel() {
     var loading by mutableStateOf(true)
-    var currentScreen by mutableStateOf<Screen>(Screen.Chat)
+    var currentScreen by mutableStateOf<Screen>(Screen.Settings)
 
 
     private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
@@ -56,6 +57,7 @@ class RimuruViewModel : ViewModel() {
     var accountDao: AccountDao? by mutableStateOf(null)
     var theme by mutableStateOf(Theme.Type.Light)
     var loginEmail by mutableStateOf("")
+    var loginAccount: SaveAccount? by mutableStateOf(null)
     var lastEmail by mutableStateOf("")
     var path by mutableStateOf("")
     var accounts by mutableStateOf(listOf<EmailWithPassword>())
@@ -310,6 +312,11 @@ class RimuruViewModel : ViewModel() {
                         cancel("服务器正在启动，请等待...")
                         return@launch
                     }
+                    if (serverInfo.versionNumber != 340) {
+                        delServer(server.toServer())
+                        cancel("暂不支持其他版本")
+                        return@launch
+                    }
                     val client = MinecraftClient.builder()
                         .plugin(AutoVersionForgePlugin())
                         .plugin(PlayerPlugin())
@@ -335,7 +342,7 @@ class RimuruViewModel : ViewModel() {
                     client.onPacket<DisconnectPacket> {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
-                        viewModelScope.launch(Dispatchers.IO){
+                        viewModelScope.launch(Dispatchers.IO) {
                             server.online = 0
                             server.isLogin = false
                             accountDao!!.updateSaveServer(server)
@@ -343,7 +350,8 @@ class RimuruViewModel : ViewModel() {
                             client.reconnect()
                         }
                     }.onPacket<ChatPacket> {
-                        viewModelScope.launch(Dispatchers.IO){
+                        viewModelScope.launch(Dispatchers.IO) {
+                            Log.i("chat", packet.json)
                             if (packet.json.contains("\"text\"") &&
                                 packet.json.contains("\"hoverEvent\"") &&
                                 packet.json.contains("\"extra\"") &&
@@ -351,29 +359,35 @@ class RimuruViewModel : ViewModel() {
                                 packet.json.contains("id") &&
                                 packet.json.contains("name")
                             ) {
-                                val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
-                                val text =
-                                    json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
-                                val temp =
-                                    json.jsonArray[0]
-                                        .jsonObject["extra"]!!.jsonArray[1]
-                                        .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
-                                val jsonTemp =
-                                    Json.parseToJsonElement(temp.replace("name", "\"name\"").replace("id", "\"id\""))
-                                val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
-                                val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
-                                val icon = saveImg(uuid)
-                                sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
+                                try {
+                                    val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
+                                    val text =
+                                        json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
+                                    val temp =
+                                        json.jsonArray[0]
+                                            .jsonObject["extra"]!!.jsonArray[1]
+                                            .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
+                                    val jsonTemp =
+                                        Json.parseToJsonElement(
+                                            temp.replace("name", "\"name\"").replace("id", "\"id\"")
+                                        )
+                                    val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
+                                    val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
+                                    val icon = saveImg(uuid)
+                                    sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
+                                } catch (e: NullPointerException) {
+                                    Log.e("chat", packet.json)
+                                }
                             }
                         }
                     }.onPacket<PlayerPositionAndLookPacket> {
-                        viewModelScope.launch(Dispatchers.IO){
+                        viewModelScope.launch(Dispatchers.IO) {
                             server.isLogin = true
                             server.online = client.getPlayerTab().players.size
                             accountDao!!.updateSaveServer(server)
                         }
                     }.onPacket<PlayerListItemPacket> {
-                        viewModelScope.launch(Dispatchers.IO){
+                        viewModelScope.launch(Dispatchers.IO) {
                             Thread.sleep(1000L)
                             server.online = client.getPlayerTab().players.size
                             accountDao!!.updateSaveServer(server)

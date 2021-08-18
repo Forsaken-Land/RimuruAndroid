@@ -11,6 +11,7 @@ val white = Color(246, 246, 246)
 val white1 = Color(255, 255, 255)
 val white2 = Color(0xFFE5E5E5)
 val white3 = Color(245, 245, 245)
+val white4 = Color(242, 242, 242)
 val blue = Color(0, 155, 255)
 
 

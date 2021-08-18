@@ -88,7 +88,7 @@ fun ServerList() {
 
 }
 
-private fun SaveServer.toServer(): Server {
+fun SaveServer.toServer(): Server {
     return Server(host, port, name, icon, isLogin, online)
 }
 

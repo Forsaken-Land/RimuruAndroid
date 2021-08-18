@@ -1,8 +1,10 @@
-Compose Multiplatform Application
+<h1 style="text-align:center">更新信息 </h1>
 
-**Desktop**
-- `./gradlew run` - run application
-- `./gradlew package` - package native distribution into `build/compose/binaries`
+##v0.1.7
+* 重写设置界面
+* 添加更新日志
+* 修复频繁掉线问题
 
-**Android**
-- `./gradlew installDebug` - install Android application on an Android device (on a real device or on an emulator)
+##v0.1.6
+* 加入玩家在线列表监听
+* 修复在线状态未初始化问题

@@ -80,8 +80,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0-alpha02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha07")
-    implementation("org.slf4j:slf4j-api:1.7.25")
-    implementation("com.github.tony19:logback-android:2.0.0")
+    implementation("androidx.navigation:navigation-compose:2.4.0-alpha06")
+    implementation("com.github.jeziellago:compose-markdown:0.2.5")
 
 
     implementation(compose.uiTooling)

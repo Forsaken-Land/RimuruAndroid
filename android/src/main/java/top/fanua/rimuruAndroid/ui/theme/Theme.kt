@@ -64,6 +64,7 @@ private val LightColorPalette = RimuruColors(
     bubbleMe = blue,
     bubbleOthers = white1,
     chatBackground = white3,
+    setBackground = white4,
 )
 
 //private val DarkColorPalette = RimuruColors(
@@ -92,6 +93,7 @@ class RimuruColors(
     bubbleMe: Color,
     bubbleOthers: Color,
     chatBackground: Color,
+    setBackground: Color,
 ) {
     var bottomBar: Color by mutableStateOf(bottomBar)
         private set
@@ -117,6 +119,8 @@ class RimuruColors(
         private set
     var chatBackground: Color by mutableStateOf(chatBackground)
         private set
+    var setBackground: Color by mutableStateOf(setBackground)
+        private set
 }
 
 @Composable
@@ -136,6 +140,7 @@ fun Theme(theme: Theme.Type = Theme.Type.Light, content: @Composable () -> Unit)
     val textPrimary = animateColorAsState(targetColors.textPrimary, TweenSpec(600))
     val textPrimaryMe = animateColorAsState(targetColors.textPrimaryMe, TweenSpec(600))
     val chatBackground = animateColorAsState(targetColors.chatBackground, TweenSpec(600))
+    val setBackground = animateColorAsState(targetColors.setBackground, TweenSpec(600))
     val colors = RimuruColors(
         bottomBar = bottomBar.value,
         background = background.value,
@@ -148,7 +153,8 @@ fun Theme(theme: Theme.Type = Theme.Type.Light, content: @Composable () -> Unit)
         bubbleOthers = bubbleOthers.value,
         textPrimary = textPrimary.value,
         textPrimaryMe = textPrimaryMe.value,
-        chatBackground = chatBackground.value
+        chatBackground = chatBackground.value,
+        setBackground = setBackground.value
     )
 
     CompositionLocalProvider(LocalRimuruColors provides colors) {
