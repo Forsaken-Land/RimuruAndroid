@@ -16,10 +16,7 @@ import com.google.accompanist.insets.ProvideWindowInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import top.fanua.rimuruAndroid.data.AppDatabase
-import top.fanua.rimuruAndroid.data.MIGRATION_1_2
-import top.fanua.rimuruAndroid.data.MIGRATION_2_3
-import top.fanua.rimuruAndroid.data.Role
+import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
 import top.fanua.rimuruAndroid.ui.LoginPage
@@ -43,7 +40,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel.accountDao = Room.databaseBuilder(
                         applicationContext,
                         AppDatabase::class.java, "account-data"
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3,)
                         .build().accountDao()
                     Config()
                     if (!viewModel.loading) {

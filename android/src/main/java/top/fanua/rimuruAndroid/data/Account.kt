@@ -74,7 +74,7 @@ data class SaveServer(
 
 @Entity(tableName = "SaveChat")
 data class SaveChat(
-    @PrimaryKey(autoGenerate = true) val uid: Int? = null,
+    @PrimaryKey(autoGenerate = true) val uid: Long? = null,
     @NotNull val ownerId: Int,
     var text: String,
     var time: Long,
@@ -116,7 +116,7 @@ interface AccountDao {
     fun insertSaveServer(server: SaveServer)
 
     @Insert
-    fun insertSaveChats(vararg saveChat: SaveChat)
+    fun insertSaveChats(saveChat: SaveChat): Long
 
     @Insert
     fun insertConfig(config: Config)
@@ -149,7 +149,7 @@ interface AccountDao {
         SaveServer::class,
         SaveChat::class,
         Password::class],
-    version = 3
+    version = 5
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao

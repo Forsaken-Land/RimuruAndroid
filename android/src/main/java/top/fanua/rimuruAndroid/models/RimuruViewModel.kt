@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -40,6 +41,7 @@ import java.io.File
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import kotlin.random.Random
 
 /**
  *
@@ -154,18 +156,18 @@ class RimuruViewModel : ViewModel() {
     }
 
     private fun saveImg(uuid: String): String {
+        val iconPath = "$path/icons"
         var hash = ""
-        viewModelScope.launch(Dispatchers.IO) {
+        val job = viewModelScope.launch(Dispatchers.IO) {
             val ygg = YggdrasilApi(authServer, sessionServer).createService()
-            val textures = ygg.profile(uuid.replace("-", "")).properties!!.get("textures").orEmpty()
-            val iconPath = "$path/icons"
+            val textures = ygg.profile(uuid).properties!!.get("textures").orEmpty()
             val texture = String(Base64.decode(textures.toByteArray(), Base64.DEFAULT))
             val textureUrl = Json.parseToJsonElement(texture)
                 .jsonObject["textures"]!!
                 .jsonObject["SKIN"]!!
                 .jsonObject["url"]!!
                 .jsonPrimitive.content
-            hash = textureUrl.substring(textureUrl.lastIndexOf('/'))
+            hash = textureUrl.substring(textureUrl.lastIndexOf('/') + 1)
             val onIcon = File("$iconPath/${hash}.on")
             val icon = File("$iconPath/${hash}")
             if (!icon.exists()) {
@@ -173,8 +175,10 @@ class RimuruViewModel : ViewModel() {
                 if (!icon.exists()) icon.write(handler.underBitmap)
                 if (!onIcon.exists()) onIcon.write(handler.onBitmap)
             }
+            Log.e("hash", hash)
         }
-        while (hash.isEmpty()) {
+        while (job.isActive) {
+            if (hash.isNotEmpty()) return hash
         }
         return hash
     }
@@ -351,7 +355,7 @@ class RimuruViewModel : ViewModel() {
                         }
                     }.onPacket<ChatPacket> {
                         viewModelScope.launch(Dispatchers.IO) {
-                            Log.i("chat", packet.json)
+                            Log.e("输入", packet.json)
                             if (packet.json.contains("\"text\"") &&
                                 packet.json.contains("\"hoverEvent\"") &&
                                 packet.json.contains("\"extra\"") &&
@@ -371,7 +375,7 @@ class RimuruViewModel : ViewModel() {
                                         Json.parseToJsonElement(
                                             temp.replace("name", "\"name\"").replace("id", "\"id\"")
                                         )
-                                    val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content
+                                    val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content.replace("-", "")
                                     val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
                                     val icon = saveImg(uuid)
                                     sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
@@ -453,7 +457,7 @@ class RimuruViewModel : ViewModel() {
                             ownerId = it.uid!!,
                             text = string,
                             time = curTime,
-                            uuid = role.uuid.replace("-", ""),
+                            uuid = role.uuid,
                             name = role.name,
                             icon = "$path/icons/${role.icon}"
                         )
