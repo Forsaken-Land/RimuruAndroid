@@ -47,17 +47,12 @@ object ImageUtils {
         return Header(underBitmap, onBitmap)
     }
 
-    suspend fun downloadImg(textureTemp: String, size: Int = 16): Header {
+    suspend fun downloadImg(url: String, size: Int = 16): Header {
         return withContext(Dispatchers.IO) {
-            val texture = String(Base64.decode(textureTemp.toByteArray(), Base64.DEFAULT))
-            val textureUrl = Json.parseToJsonElement(texture)
-                .jsonObject["textures"]!!
-                .jsonObject["SKIN"]!!
-                .jsonObject["url"]!!
-                .jsonPrimitive.content.replace("http://","https://")
-            val hash = textureUrl.substring(textureUrl.lastIndexOf('/'))
+
+            val hash = url.substring(url.lastIndexOf('/'))
             val inputStream =
-                OkHttpClient().newCall(Request.Builder().get().url(textureUrl).build()).execute().body!!.byteStream()
+                OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
 
             val img = drawImg(BitmapFactory.decodeStream(inputStream), size)
             inputStream.close()

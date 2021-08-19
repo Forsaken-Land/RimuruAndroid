@@ -157,16 +157,21 @@ class RimuruViewModel : ViewModel() {
             val ygg = YggdrasilApi(authServer, sessionServer).createService()
             val textures = ygg.profile(uuid).properties!!.get("textures").orEmpty()
             val texture = String(Base64.decode(textures.toByteArray(), Base64.DEFAULT))
-            val textureUrl = Json.parseToJsonElement(texture)
-                .jsonObject["textures"]!!
-                .jsonObject["SKIN"]!!
-                .jsonObject["url"]!!
-                .jsonPrimitive.content
+            val textureUrl = try {
+                Json.parseToJsonElement(texture)
+                    .jsonObject["textures"]!!
+                    .jsonObject["SKIN"]!!
+                    .jsonObject["url"]!!
+                    .jsonPrimitive.content.replace("http://", "https://")
+            } catch (e: NullPointerException) {
+                if (uuid.hashCode() % 2 == 1) "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/3/37/Steve_skin.png"
+                else "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/f/f2/Alex_skin.png"
+            }
             hash = textureUrl.substring(textureUrl.lastIndexOf('/') + 1)
             val onIcon = File("$iconPath/${hash}.on")
             val icon = File("$iconPath/${hash}")
             if (!icon.exists()) {
-                val handler = ImageUtils.downloadImg(textures)
+                val handler = ImageUtils.downloadImg(textureUrl)
                 if (!icon.exists()) icon.write(handler.underBitmap)
                 if (!onIcon.exists()) onIcon.write(handler.onBitmap)
             }
@@ -232,8 +237,18 @@ class RimuruViewModel : ViewModel() {
             //头像相关
 
             val iconPath = "$path/icons"
-
-            val handler = ImageUtils.downloadImg(textures)
+            val texture = String(Base64.decode(textures.toByteArray(), Base64.DEFAULT))
+            val textureUrl = try {
+                Json.parseToJsonElement(texture)
+                    .jsonObject["textures"]!!
+                    .jsonObject["SKIN"]!!
+                    .jsonObject["url"]!!
+                    .jsonPrimitive.content.replace("http://", "https://")
+            } catch (e: NullPointerException) {
+                if (uuid.hashCode() % 2 == 1) "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/3/37/Steve_skin.png"
+                else "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/f/f2/Alex_skin.png"
+            }
+            val handler = ImageUtils.downloadImg(textureUrl)
 
             val onIcon = File("$iconPath/${handler.hash!!}.on")
             val icon = File("$iconPath/${handler.hash!!}")
