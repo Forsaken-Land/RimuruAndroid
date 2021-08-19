@@ -149,7 +149,7 @@ interface AccountDao {
         SaveServer::class,
         SaveChat::class,
         Password::class],
-    version = 5
+    version = 3
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
