@@ -32,5 +32,8 @@ fun ComposeNavigation(navController: NavHostController, viewModel: RimuruViewMod
         composable("info") {
             InfoSetting(viewModel)
         }
+        composable("online") {
+            OnlineNavigation(viewModel, navController)
+        }
     }
 }

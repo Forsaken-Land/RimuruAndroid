@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
 import org.jetbrains.annotations.NotNull
+import top.fanua.doctor.protocol.definition.play.client.GameMode
 
 /**
  *
@@ -83,6 +84,16 @@ data class SaveChat(
     var icon: String
 )
 
+@Entity(tableName = "Online")
+data class Online(
+    @PrimaryKey(autoGenerate = true) val uid: Long? = null,
+    @NotNull val uuid: String,
+    @NotNull val ownerId: Int,
+    val name: String,
+    val gameMode: Int,
+    val icon: String
+)
+
 data class ServerWithChats(
     @Embedded val server: SaveServer,
     @Relation(
@@ -106,8 +117,17 @@ interface AccountDao {
     @Query("SELECT * FROM SaveServer WHERE email = :email AND name = :name")
     fun getSaveChats(email: String, name: String): Flow<ServerWithChats>
 
+    @Query("SELECT * FROM Online WHERE ownerId = (SELECT uid FROM SaveServer WHERE email =:email AND name =:name)")
+    fun getOnline(email: String, name: String): Flow<List<Online>>
+
     @Query("SELECT * FROM Config WHERE `key` = :key")
     fun getConfig(key: String): Flow<Config>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOnline(online: List<Online>)
+
+    @Query("DELETE FROM Online WHERE ownerId =:ownerId")
+    fun delOnline(ownerId: Int)
 
     @Insert
     fun insertSaveAccount(saveAccount: SaveAccount, password: Password)
@@ -148,8 +168,9 @@ interface AccountDao {
         Config::class,
         SaveServer::class,
         SaveChat::class,
-        Password::class],
-    version = 3
+        Password::class,
+        Online::class],
+    version = 6
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -166,3 +187,21 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("CREATE TABLE Online (uuid TEXT NOT NULL, ownerId INTEGER NOT NULL, name TEXT NOT NULL, gameMode INTEGER NOT NULL, PRIMARY KEY(uuid))")
+    }
+}
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE Online ADD COLUMN icon TEXT NOT NULL DEFAULT('')")
+    }
+}
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("CREATE TABLE line (`uid` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` TEXT NOT NULL, `ownerId` INTEGER NOT NULL, `name` TEXT NOT NULL, `gameMode` INTEGER NOT NULL, `icon` TEXT NOT NULL)")
+        database.execSQL("INSERT INTO line(uid, uuid, ownerId, name, gameMode, icon) SELECT NULL, uuid, ownerId, name, gameMode, icon FROM Online")
+        database.execSQL("DROP TABLE Online")
+        database.execSQL("ALTER TABLE line RENAME TO Online")
+    }
+}

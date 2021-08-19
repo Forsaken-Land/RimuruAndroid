@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel.accountDao = Room.databaseBuilder(
                         applicationContext,
                         AppDatabase::class.java, "account-data"
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3,)
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                         .build().accountDao()
                     Config()
                     if (!viewModel.loading) {
@@ -93,7 +93,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (viewModel.chatting) viewModel.endChat() else super.onBackPressed()
+        if (viewModel.chatInfo) {
+            viewModel.chatInfo = false
+            super.onBackPressed()
+        } else if (viewModel.chatting) viewModel.endChat() else super.onBackPressed()
     }
 }
 

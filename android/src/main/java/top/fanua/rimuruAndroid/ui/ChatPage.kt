@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.google.accompanist.insets.*
 import top.fanua.rimuruAndroid.data.Chat
 import top.fanua.rimuruAndroid.data.Msg
@@ -48,8 +49,7 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ChatPage() {
-    val viewModel: RimuruViewModel = viewModel()
+fun ChatPage(navController: NavHostController, viewModel: RimuruViewModel) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     if (viewModel.currentChat != null) {
@@ -83,7 +83,7 @@ fun ChatPage() {
                             color = Theme.colors.divider,
                             thickness = 0.8f.dp
                         )
-                        TopBar(chat!!.server.name, chat!!.server.isLogin, chat!!.server.online) {
+                        TopBar(chat!!.server.name, chat!!.server.isLogin, chat!!.server.online, navController) {
                             viewModel.endChat()
                             keyboardController?.hide()
                         }

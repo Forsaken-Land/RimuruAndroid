@@ -18,7 +18,7 @@ buildscript {
 
 allprojects {
     group = "top.fanua.mc"
-    version = "0.1.9"
+    version = "0.1.10"
     repositories {
         maven("https://maven.fanua.top:8015/repository/maven-public/")
         google()

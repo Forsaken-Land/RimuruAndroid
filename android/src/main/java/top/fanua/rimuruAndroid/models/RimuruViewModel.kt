@@ -34,6 +34,7 @@ import top.limbang.minecraft.yggdrasil.YggdrasilApi
 import top.limbang.minecraft.yggdrasil.model.JoinRequest
 import top.limbang.minecraft.yggdrasil.model.Token
 import java.io.File
+import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -51,6 +52,7 @@ class RimuruViewModel : ViewModel() {
     private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
     private val sessionServer: String = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
 
+    var chatInfo by mutableStateOf(false)
     var accountDao: AccountDao? by mutableStateOf(null)
     var theme by mutableStateOf(Theme.Type.Light)
     var loginEmail by mutableStateOf("")
@@ -295,20 +297,17 @@ class RimuruViewModel : ViewModel() {
     }
 
     fun start() {
-        viewModelScope.launch(Dispatchers.IO) {
-            servers.forEach { server ->
-                server.isLogin = false
-                accountDao!!.updateSaveServer(server)
-            }
-        }
         servers.forEach { server ->
             if (server.email == loginEmail) {
                 viewModelScope.launch(Dispatchers.IO) {
-                    server.online = 0
+                    clients.forEach { minecraftClient ->
+                        if (minecraftClient.connection.host == server.host && minecraftClient.connection.port == server.port) {
+                            cancel("服务器已经存在")
+                            return@launch
+                        }
+                    }
                     server.isLogin = false
                     accountDao!!.updateSaveServer(server)
-                }
-                viewModelScope.launch(Dispatchers.IO) {
                     Thread.sleep(1000L)
                     val jsonStr: String
                     try {
@@ -336,11 +335,6 @@ class RimuruViewModel : ViewModel() {
                         .plugin(PlayerPlugin())
                         .enableAllLoginPlugin()
                         .build()
-
-                    clients.forEach { minecraftClient ->
-                        if (minecraftClient == client) return@launch
-                    }
-                    clients.add(client)
                     client.start(
                         server.host,
                         server.port,
@@ -352,11 +346,12 @@ class RimuruViewModel : ViewModel() {
                             viewModel = this@RimuruViewModel
                         )
                     )
-
+                    clients.add(client)
                     client.onPacket<DisconnectPacket> {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
                         viewModelScope.launch(Dispatchers.IO) {
+                            accountDao!!.delOnline(server.uid!!)
                             server.online = 0
                             server.isLogin = false
                             accountDao!!.updateSaveServer(server)
@@ -379,18 +374,24 @@ class RimuruViewModel : ViewModel() {
                             accountDao!!.updateSaveServer(server)
                         }
                     }.onPacket<PlayerListItemPacket> {
+                        val list = client.getPlayerTab().players
                         viewModelScope.launch(Dispatchers.IO) {
+                            server.isLogin = true
+                            server.online = list.size
                             Thread.sleep(1000L)
-                            server.online = client.getPlayerTab().players.size
                             accountDao!!.updateSaveServer(server)
                         }
-
+                        upOnline(list, server)
                     }
                     while (true) {
                         delay(5000L)
                         var del = true
                         servers.forEach {
-                            if (it == server) del = false
+                            if (it.host == server.host &&
+                                it.port == server.port &&
+                                it.name == server.name &&
+                                it.email == server.email
+                            ) del = false
                         }
                         if (del) {
                             client.stop()
@@ -400,6 +401,26 @@ class RimuruViewModel : ViewModel() {
                     }
                 }
             }
+        }
+    }
+
+    private fun upOnline(list: Map<UUID, PlayerInfo>, server: SaveServer) {
+        runBlocking {
+            accountDao!!.delOnline(server.uid!!)
+            val online = mutableListOf<Online>()
+            list.forEach { (uuid, playerInfo) ->
+                val icon = saveImg(uuid.toString().replace("-", ""))
+                online.add(
+                    Online(
+                        uuid = uuid.toString().replace("-", ""),
+                        ownerId = server.uid,
+                        name = playerInfo.name.orEmpty(),
+                        gameMode = playerInfo.gameMode?.id ?: 0,
+                        icon = "$path/icons/$icon"
+                    )
+                )
+            }
+            accountDao!!.insertOnline(online)
         }
     }
 

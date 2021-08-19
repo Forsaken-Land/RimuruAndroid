@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.google.accompanist.insets.statusBarsPadding
 import kotlinx.coroutines.Dispatchers
@@ -201,7 +202,13 @@ private fun ChatListItem(
 }
 
 @Composable
-fun TopBar(title: String, isLogin: Boolean? = null, size: Int = 0, onBack: (() -> Unit)? = null) {
+fun TopBar(
+    title: String,
+    isLogin: Boolean? = null,
+    size: Int = 0,
+    navHostController: NavHostController? = null,
+    onBack: (() -> Unit)? = null
+) {
     val rimuruViewModel: RimuruViewModel = viewModel()
     Box(
         Modifier
@@ -278,7 +285,10 @@ fun TopBar(title: String, isLogin: Boolean? = null, size: Int = 0, onBack: (() -
                     if (isLogin) "在线: $size" else "离线",
                     maxLines = 1,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.width(120.dp),
+                    modifier = Modifier.width(120.dp).clickableWithout(isLogin) {
+                        rimuruViewModel.chatInfo = true
+                        navHostController?.navigate("online")
+                    },
                     fontSize = 10.sp,
                     color = Theme.colors.timeText
                 )

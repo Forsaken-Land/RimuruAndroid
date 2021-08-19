@@ -42,7 +42,7 @@ fun Home() {
             }
         }
     }
-    ChatPage()
-    ComposeNavigation(navController,rimuruViewModel)
+    ChatPage(navController, rimuruViewModel)
+    ComposeNavigation(navController, rimuruViewModel)
 }
 
