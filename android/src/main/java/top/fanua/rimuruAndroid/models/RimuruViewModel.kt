@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -20,9 +19,7 @@ import top.fanua.doctor.client.running.getPlayerTab
 import top.fanua.doctor.client.utils.ServerInfoUtils
 import top.fanua.doctor.network.api.Connection
 import top.fanua.doctor.network.event.ConnectionEvent
-import top.fanua.doctor.network.event.NetLifeCycleEvent
 import top.fanua.doctor.network.handler.onPacket
-import top.fanua.doctor.network.handler.replyPacket
 import top.fanua.doctor.protocol.definition.login.client.EncryptionResponsePacket
 import top.fanua.doctor.protocol.definition.login.server.EncryptionRequestPacket
 import top.fanua.doctor.protocol.definition.play.client.*
@@ -31,7 +28,6 @@ import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.Theme
-import top.fanua.rimuruAndroid.ui.toChat
 import top.fanua.rimuruAndroid.ui.toServer
 import top.fanua.rimuruAndroid.utils.*
 import top.limbang.minecraft.yggdrasil.YggdrasilApi
@@ -41,7 +37,6 @@ import java.io.File
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import kotlin.random.Random
 
 /**
  *
@@ -316,7 +311,7 @@ class RimuruViewModel : ViewModel() {
                         cancel("服务器正在启动，请等待...")
                         return@launch
                     }
-                    if (serverInfo.versionNumber != 340) {
+                    if (serverInfo.versionNumber != 340 && serverInfo.versionNumber != 754) {
                         delServer(server.toServer())
                         cancel("暂不支持其他版本")
                         return@launch
@@ -354,33 +349,11 @@ class RimuruViewModel : ViewModel() {
                             client.reconnect()
                         }
                     }.onPacket<ChatPacket> {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            Log.e("输入", packet.json)
-                            if (packet.json.contains("\"text\"") &&
-                                packet.json.contains("\"hoverEvent\"") &&
-                                packet.json.contains("\"extra\"") &&
-                                packet.json.contains("\"value\"") &&
-                                packet.json.contains("id") &&
-                                packet.json.contains("name")
-                            ) {
-                                try {
-                                    val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!
-                                    val text =
-                                        json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
-                                    val temp =
-                                        json.jsonArray[0]
-                                            .jsonObject["extra"]!!.jsonArray[1]
-                                            .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
-                                    val jsonTemp =
-                                        Json.parseToJsonElement(
-                                            temp.replace("name", "\"name\"").replace("id", "\"id\"")
-                                        )
-                                    val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content.replace("-", "")
-                                    val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
-                                    val icon = saveImg(uuid)
-                                    sendLocalMessage(text, Role(uuid, name, icon), connection.host, connection.port)
-                                } catch (e: NullPointerException) {
-                                    Log.e("chat", packet.json)
+                        when (serverInfo.versionNumber) {
+                            340 -> send12(packet.json, connection.host, connection.port)
+                            754 -> {
+                                if (packet.type == ChatType.CHAT) {
+                                    send16((packet as ChatType1Packet), client, connection.host, connection.port)
                                 }
                             }
                         }
@@ -411,6 +384,54 @@ class RimuruViewModel : ViewModel() {
                         delay(5000L)
                     }
                 }
+            }
+        }
+    }
+
+    private fun send12(json: String, host: String, port: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            Log.e("输入", json)
+            if (json.contains("\"text\"") &&
+                json.contains("\"hoverEvent\"") &&
+                json.contains("\"extra\"") &&
+                json.contains("\"value\"") &&
+                json.contains("id") &&
+                json.contains("name")
+            ) {
+                try {
+                    val json = Json.parseToJsonElement(json).jsonObject["extra"]!!
+                    val text =
+                        json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
+                    val temp =
+                        json.jsonArray[0]
+                            .jsonObject["extra"]!!.jsonArray[1]
+                            .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
+                    val jsonTemp =
+                        Json.parseToJsonElement(
+                            temp.replace("name", "\"name\"").replace("id", "\"id\"")
+                        )
+                    val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content.replace("-", "")
+                    val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
+                    val icon = saveImg(uuid)
+                    sendLocalMessage(text, Role(uuid, name, icon), host, port)
+                } catch (e: NullPointerException) {
+                    Log.e("chat", json)
+                }
+            }
+        }
+    }
+
+    private fun send16(packet: ChatType1Packet, client: MinecraftClient, host: String, port: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uuid = packet.sender
+            try {
+                val json = Json.parseToJsonElement(packet.json).jsonObject["extra"]!!.jsonArray
+                val text = json[2].jsonObject["text"]!!.jsonPrimitive.content
+                val name = client.getPlayerTab().players[uuid]!!.name!!
+                val icon = saveImg(uuid.toString().replace("-", ""))
+                sendLocalMessage(text, Role(uuid.toString().replace("-", ""), name, icon), host, port)
+            } catch (e: NullPointerException) {
+                Log.e("chat", packet.json)
             }
         }
     }
