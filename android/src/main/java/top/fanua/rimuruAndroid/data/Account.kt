@@ -84,15 +84,6 @@ data class SaveChat(
     var icon: String
 )
 
-@Entity(tableName = "Online")
-data class Online(
-    @PrimaryKey(autoGenerate = true) val uid: Long? = null,
-    @NotNull val uuid: String,
-    @NotNull val ownerId: Int,
-    val name: String,
-    val gameMode: Int,
-    val icon: String
-)
 
 data class ServerWithChats(
     @Embedded val server: SaveServer,
@@ -117,17 +108,8 @@ interface AccountDao {
     @Query("SELECT * FROM SaveServer WHERE email = :email AND name = :name")
     fun getSaveChats(email: String, name: String): Flow<ServerWithChats>
 
-    @Query("SELECT * FROM Online WHERE ownerId = (SELECT uid FROM SaveServer WHERE email =:email AND name =:name)")
-    fun getOnline(email: String, name: String): Flow<List<Online>>
-
     @Query("SELECT * FROM Config WHERE `key` = :key")
     fun getConfig(key: String): Flow<Config>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertOnline(online: List<Online>)
-
-    @Query("DELETE FROM Online WHERE ownerId =:ownerId")
-    fun delOnline(ownerId: Int)
 
     @Insert
     fun insertSaveAccount(saveAccount: SaveAccount, password: Password)
@@ -168,9 +150,8 @@ interface AccountDao {
         Config::class,
         SaveServer::class,
         SaveChat::class,
-        Password::class,
-        Online::class],
-    version = 6
+        Password::class],
+    version = 7
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -203,5 +184,10 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         database.execSQL("INSERT INTO line(uid, uuid, ownerId, name, gameMode, icon) SELECT NULL, uuid, ownerId, name, gameMode, icon FROM Online")
         database.execSQL("DROP TABLE Online")
         database.execSQL("ALTER TABLE line RENAME TO Online")
+    }
+}
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("DROP TABLE Online")
     }
 }

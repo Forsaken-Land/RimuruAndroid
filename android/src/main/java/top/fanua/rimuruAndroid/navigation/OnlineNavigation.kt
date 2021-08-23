@@ -28,10 +28,7 @@ import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 @Composable
 fun OnlineNavigation(viewModel: RimuruViewModel, navController: NavHostController) {
     if (viewModel.currentChat != null) {
-        val online =
-            viewModel.accountDao!!.getOnline(viewModel.loginEmail, viewModel.currentChat!!.server.name).collectAsState(
-                listOf()
-            ).value
+        val online = viewModel.online[viewModel.currentChat!!.server.name]!!
         Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
             Spacer(Modifier.height(60.dp).fillMaxWidth().clickableWithout(true) {
                 navController.navigate("empty")

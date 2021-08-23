@@ -1,6 +1,7 @@
 package top.fanua.rimuruAndroid.data
 
 import kotlinx.serialization.Serializable
+import org.jetbrains.annotations.NotNull
 import top.fanua.rimuruAndroid.utils.curTime
 
 /**
@@ -36,4 +37,12 @@ data class Msg(
     val from: Role,
     val text: String,
     val time: Long = curTime
+)
+
+@Serializable
+data class Online(
+    val uuid: String,
+    val name: String,
+    val gameMode: Int,
+    val icon: String
 )

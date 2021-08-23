@@ -51,7 +51,8 @@ class RimuruViewModel : ViewModel() {
 
     private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
     private val sessionServer: String = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
-
+    val hashCache by mutableStateOf(mutableStateMapOf<String, String>())
+    val online by mutableStateOf(mutableStateMapOf<String, List<Online>>())
     var chatInfo by mutableStateOf(false)
     var accountDao: AccountDao? by mutableStateOf(null)
     var theme by mutableStateOf(Theme.Type.Light)
@@ -351,7 +352,7 @@ class RimuruViewModel : ViewModel() {
                         Log.e("disconnect", packet.reason)
                     }.on(ConnectionEvent.Disconnect) {
                         viewModelScope.launch(Dispatchers.IO) {
-                            accountDao!!.delOnline(server.uid!!)
+                            online[server.name] = emptyList()
                             server.online = 0
                             server.isLogin = false
                             accountDao!!.updateSaveServer(server)
@@ -368,19 +369,11 @@ class RimuruViewModel : ViewModel() {
                             }
                         }
                     }.onPacket<PlayerPositionAndLookPacket> {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            server.isLogin = true
-                            server.online = client.getPlayerTab().players.size
-                            accountDao!!.updateSaveServer(server)
-                        }
+                        val list = client.getPlayerTab().players
+                        upOnline(list, server)
+
                     }.onPacket<PlayerListItemPacket> {
                         val list = client.getPlayerTab().players
-                        viewModelScope.launch(Dispatchers.IO) {
-                            server.isLogin = true
-                            server.online = list.size
-                            Thread.sleep(1000L)
-                            accountDao!!.updateSaveServer(server)
-                        }
                         upOnline(list, server)
                     }
                     while (true) {
@@ -406,21 +399,25 @@ class RimuruViewModel : ViewModel() {
 
     private fun upOnline(list: Map<UUID, PlayerInfo>, server: SaveServer) {
         runBlocking {
-            accountDao!!.delOnline(server.uid!!)
-            val online = mutableListOf<Online>()
-            list.forEach { (uuid, playerInfo) ->
-                val icon = saveImg(uuid.toString().replace("-", ""))
-                online.add(
-                    Online(
-                        uuid = uuid.toString().replace("-", ""),
-                        ownerId = server.uid,
-                        name = playerInfo.name.orEmpty(),
-                        gameMode = playerInfo.gameMode?.id ?: 0,
-                        icon = "$path/icons/$icon"
-                    )
+            server.isLogin = true
+            server.online = list.size
+            accountDao!!.updateSaveServer(server)
+            online[server.name] = list.map { (uuid, playerInfo) ->
+                val str = uuid.toString().replace("-", "")
+                val icon = if (hashCache[str].isNullOrEmpty()) {
+                    saveImg(str).also {
+                        hashCache[str] = it
+                    }
+                } else {
+                    hashCache[str]!!
+                }
+                Online(
+                    uuid.toString().replace("-", ""),
+                    playerInfo.name.orEmpty(),
+                    playerInfo.gameMode?.id ?: 0,
+                    "$path/icons/$icon"
                 )
             }
-            accountDao!!.insertOnline(online)
         }
     }
 
@@ -448,9 +445,15 @@ class RimuruViewModel : ViewModel() {
                         )
                     val uuid = jsonTemp.jsonObject["id"]!!.jsonPrimitive.content.replace("-", "")
                     val name = jsonTemp.jsonObject["name"]!!.jsonPrimitive.content
-                    val icon = saveImg(uuid)
+                    val icon = if (hashCache[uuid].isNullOrEmpty()) {
+                        saveImg(uuid).also {
+                            hashCache[uuid] = it
+                        }
+                    } else {
+                        hashCache[uuid]!!
+                    }
                     sendLocalMessage(text, Role(uuid, name, icon), host, port)
-                } catch (e: NullPointerException) {
+                } catch (e: Exception) {
                     Log.e("chat", json)
                 }
             }
