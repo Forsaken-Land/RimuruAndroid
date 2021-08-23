@@ -167,8 +167,8 @@ class RimuruViewModel : ViewModel() {
                     .jsonObject["url"]!!
                     .jsonPrimitive.content.replace("http://", "https://")
             } catch (e: NullPointerException) {
-                if (uuid.hashCode() % 2 == 1) "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/3/37/Steve_skin.png"
-                else "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/f/f2/Alex_skin.png"
+                if (uuid.hashCode() % 2 == 1) "https://gitee.com/Doctor_Yin/mc-bot/raw/master/Steve_skin.png"
+                else "https://gitee.com/Doctor_Yin/mc-bot/raw/master/Alex_skin.png"
             }
             hash = textureUrl.substring(textureUrl.lastIndexOf('/') + 1)
             val onIcon = File("$iconPath/${hash}.on")
@@ -248,8 +248,8 @@ class RimuruViewModel : ViewModel() {
                     .jsonObject["url"]!!
                     .jsonPrimitive.content.replace("http://", "https://")
             } catch (e: NullPointerException) {
-                if (uuid.hashCode() % 2 == 1) "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/3/37/Steve_skin.png"
-                else "https://static.wikia.nocookie.net/minecraft_zh_gamepedia/images/f/f2/Alex_skin.png"
+                if (uuid.hashCode() % 2 == 1) "https://gitee.com/Doctor_Yin/mc-bot/raw/master/Steve_skin.png"
+                else "https://gitee.com/Doctor_Yin/mc-bot/raw/master/Alex_skin.png"
             }
             val handler = ImageUtils.downloadImg(textureUrl)
 
