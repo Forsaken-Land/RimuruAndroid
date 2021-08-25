@@ -3,6 +3,7 @@ package top.fanua.rimuruAndroid
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.os.Process
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -20,6 +21,7 @@ import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.Home
 import top.fanua.rimuruAndroid.ui.LoginPage
+import top.fanua.rimuruAndroid.ui.UpdateDialog
 import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.Theme
@@ -35,7 +37,9 @@ class MainActivity : AppCompatActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR
         setContent {
             ProvideWindowInsets(consumeWindowInsets = false) {
-                viewModel.path = "${applicationContext.dataDir.path}/files"
+                viewModel.path = applicationContext.filesDir.path
+                viewModel.version = packageManager.getPackageInfo(packageName, 0).versionName
+                viewModel.context = this
                 Theme {
                     viewModel.accountDao = Room.databaseBuilder(
                         applicationContext,
@@ -50,11 +54,23 @@ class MainActivity : AppCompatActivity() {
                     )
                         .build().accountDao()
                     Config()
-                    if (!viewModel.loading) {
+                    if (!viewModel.loading && viewModel.needUpdate == false) {
                         viewModel.start()
                         if (viewModel.loginEmail.isNotEmpty()) Home()
                         else LoginPage()
                     }
+                    if (viewModel.needUpdate == true) {
+                        UpdateDialog(viewModel)
+                        if (viewModel.updateUtils.ok) {
+                            Log.e("安装", "开始安装")
+                            startActivity(viewModel.updateUtils.installApk(applicationContext))
+                        }
+                    }
+                    viewModel.viewModelScope.launch(Dispatchers.IO) {
+                        viewModel.serverVersion = viewModel.updateUtils.checkVersion()
+                        viewModel.needUpdate = viewModel.serverVersion != viewModel.version
+                    }
+
                 }
             }
         }

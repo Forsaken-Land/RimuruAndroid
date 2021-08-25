@@ -1,7 +1,9 @@
 package top.fanua.rimuruAndroid.models
 
+import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,9 +47,13 @@ import java.util.concurrent.TimeoutException
  * @since 2021/8/7:19:00
  */
 class RimuruViewModel : ViewModel() {
+    val updateUtils = UpdateUtils(this)
+    var needUpdate by mutableStateOf<Boolean?>(null)
+    var serverVersion by mutableStateOf("")
     var loading by mutableStateOf(true)
     var currentScreen by mutableStateOf<Screen>(Screen.Settings)
-
+    var version by mutableStateOf("")
+    var context by mutableStateOf<AppCompatActivity?>(null)
 
     private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
     private val sessionServer: String = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"

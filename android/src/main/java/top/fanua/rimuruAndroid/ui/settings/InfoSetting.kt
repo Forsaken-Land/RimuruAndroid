@@ -1,5 +1,6 @@
 package top.fanua.rimuruAndroid.ui.settings
 
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Surface
@@ -26,7 +27,7 @@ import top.fanua.rimuruAndroid.ui.theme.Theme
 @Composable
 fun InfoSetting(viewModel: RimuruViewModel) {
     val url = "https://raw.githubusercontent.com/Forsaken-Land/RimuruAndroid/dev/README.md"
-    val url2 = "https://git.blackyin.xyz:8443/liang/RimuruAndroid/-/raw/dev/README.md"
+    val url2 = "https://gitee.com/Doctor_Yin/mc-bot/raw/master/README.md"
     var markdown by mutableStateOf("")
     viewModel.viewModelScope.launch(Dispatchers.IO) {
         val inputStream = try {

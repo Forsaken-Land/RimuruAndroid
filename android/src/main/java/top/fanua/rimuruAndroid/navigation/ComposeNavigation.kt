@@ -26,10 +26,10 @@ fun ComposeNavigation(navController: NavHostController, viewModel: RimuruViewMod
         composable("empty") {
 
         }
-        composable("header") {
+        composable(Setting.HeaderSetting.id) {
             HeaderSetting(viewModel)
         }
-        composable("info") {
+        composable(Setting.InfoSetting.id) {
             InfoSetting(viewModel)
         }
         composable("online") {

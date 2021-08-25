@@ -1,21 +1,22 @@
 package top.fanua.rimuruAndroid.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
-import androidx.compose.material.TextField
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.substring
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Server
 import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.utils.UpdateUtils
 
 /**
  *
@@ -131,4 +132,98 @@ fun AddServerPage(server: (Server?) -> Unit) {
             }
         }
     )
+}
+
+@Composable
+fun ErrorDialog(msg1: String, msg2: String, viewModel: RimuruViewModel, exit: Boolean = false) {
+    val openDialog = remember { mutableStateOf(true) }
+    if (openDialog.value) {
+        AlertDialog(
+            onDismissRequest = {
+            },
+            title = {
+                Text(msg1)
+            },
+            text = {
+                Text(msg2)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                    }
+                ) {
+                    Text("确认")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (exit) {
+                            if (viewModel.context != null) viewModel.context!!.finish()
+                        } else {
+                            openDialog.value = false
+                        }
+                    }
+                ) {
+                    Text(if (exit) "退出" else "返回")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun UpdateDialog(viewModel: RimuruViewModel) {
+    val start = remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = {
+        },
+        title = {
+            Text("检测到更新")
+        }, text = {
+            Column {
+                Text(
+                    "当前版本:${viewModel.version}\n" +
+                            "服务器版本:${viewModel.serverVersion}", modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                if (start.value) {
+                    LinearProgressIndicator(
+                        viewModel.updateUtils.pd,
+                        modifier = Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 10.dp)
+                    )
+                    Text(
+                        "进度:${viewModel.updateUtils.pd * 100}%",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(20.dp).fillMaxWidth())
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !start.value,
+                onClick = {
+                    start.value = true
+                    viewModel.viewModelScope.launch(Dispatchers.IO) {
+                        viewModel.updateUtils.update()
+                    }
+                }
+            ) {
+                Text("确认")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    viewModel.context?.finish()
+                }
+            ) {
+                Text("退出")
+            }
+        }
+    )
+
 }
