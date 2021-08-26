@@ -145,6 +145,9 @@ interface AccountDao {
     fun updateSaveAccount(saveAccount: SaveAccount)
 
     @Update
+    fun updateSaveAuth(saveAuth: SaveAuth)
+
+    @Update
     fun updatePassword(password: Password)
 
     @Update

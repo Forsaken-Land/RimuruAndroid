@@ -335,13 +335,23 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         val body = Json.decodeFromString<YggdrasilBody>(json)
                         val authServer = "$url/authserver/"
                         val sessionServer = "$url/sessionserver/"
-                        viewModel.accountDao!!.insertSaveAuth(
-                            SaveAuth(
-                                authServer = authServer,
-                                sessionServer = sessionServer,
-                                name = body.meta.serverName
+                        var ok = false
+                        viewModel.authList.forEach {
+                            if (body.meta.serverName == it.name || authServer == it.authServer || sessionServer == it.sessionServer) {
+                                viewModel.accountDao!!.updateSaveAuth(it)
+                                ok = true
+                                return@forEach
+                            }
+                        }
+                        if (!ok) {
+                            viewModel.accountDao!!.insertSaveAuth(
+                                SaveAuth(
+                                    authServer = authServer,
+                                    sessionServer = sessionServer,
+                                    name = body.meta.serverName
+                                )
                             )
-                        )
+                        }
                         Log.e("url", url)
                     }
                 }
