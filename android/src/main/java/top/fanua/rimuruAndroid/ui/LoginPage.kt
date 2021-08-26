@@ -1,29 +1,31 @@
 package top.fanua.rimuruAndroid.ui
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Icon
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -35,14 +37,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.insets.navigationBarsPadding
+import com.google.accompanist.insets.navigationBarsWithImePadding
+import com.google.accompanist.insets.statusBarsPadding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import top.fanua.rimuruAndroid.data.EmailWithPassword
-import top.fanua.rimuruAndroid.data.Password
-import top.fanua.rimuruAndroid.data.SaveAccount
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.LoginStatus.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.*
+import kotlin.math.roundToInt
 
 /**
  *
@@ -297,8 +306,124 @@ fun LoginPage() {
             }
 
         }
+        AccountServer(viewModel)
     }
+
 }
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun AccountServer(viewModel: RimuruViewModel) {
+    var show by remember { mutableStateOf(false) }
+    var addAuth by remember { mutableStateOf(false) }
+    if (addAuth) {
+        AddAccountServer {
+            viewModel.viewModelScope.launch(Dispatchers.IO) {
+
+                val response = try {
+                    OkHttpClient().newCall(Request.Builder().get().url(it).build())
+                        .execute()
+                } catch (e: Exception) {
+                    null
+                }
+                if (response != null) {
+                    val url = response.headers["x-authlib-injector-api-location"].orEmpty()
+                    if (url.isNotEmpty()) {
+                        val json = String(
+                            OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.bytes()
+                        )
+                        val body = Json.decodeFromString<YggdrasilBody>(json)
+                        val authServer = "$url/authserver/"
+                        val sessionServer = "$url/sessionServer/"
+                        viewModel.accountDao!!.insertSaveAuth(
+                            SaveAuth(
+                                authServer = authServer,
+                                sessionServer = sessionServer,
+                                name = body.meta.serverName
+                            )
+                        )
+                        Log.e("url", url)
+                    }
+                }
+
+
+                addAuth = false
+                show = false
+            }
+        }
+    }
+    Box(modifier = Modifier.layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeable.placeRelative(100, constraints.maxHeight - placeable.height - 100)
+        }
+    }.height(200.dp).width(300.dp)) {
+        Column {
+            AnimatedVisibility(
+                visible = show,
+                enter = slideInVertically({ it }) + expandVertically(Alignment.Bottom, { it }) + fadeIn(0.3f),
+                exit = slideOutVertically({ it }) + shrinkVertically(Alignment.Bottom, { it }) + fadeOut()
+            ) {
+                LazyColumn(
+                    Modifier.clip(RoundedCornerShape(10.dp)).width(300.dp)
+                        .height(160.dp).background(inputColor1)
+                ) {
+                    item {
+                        Row(Modifier.fillParentMaxWidth().height(30.dp)) {
+                            Text(
+                                "正版(未支持)",
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().clickable {
+
+                                })
+                        }
+
+                    }
+                    items(viewModel.authList) {
+                        Row(Modifier.fillParentMaxWidth().height(40.dp)) {
+                            Text(
+                                it.name,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    viewModel.viewModelScope.launch(Dispatchers.IO) {
+                                        val authServer =
+                                            viewModel.accountDao!!.getConfig("authServer").firstOrNull()!!
+                                        val sessionServer =
+                                            viewModel.accountDao!!.getConfig("sessionServer").firstOrNull()!!
+                                        viewModel.accountDao!!.updateConfig(
+                                            authServer.copy(value = it.authServer),
+                                            sessionServer.copy(value = it.sessionServer)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillParentMaxWidth().height(40.dp)) {
+                            Text(
+                                "添加外置服务器",
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    addAuth = true
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+        }
+        IconButton(onClick = {
+            show = !show
+        }, modifier = Modifier.offset(y = 160.dp).shadow(5.dp, RoundedCornerShape(50.dp)).background(Color.Red)) {
+            Icon(if (show) Icons.Outlined.Close else Icons.Outlined.Menu, null)
+        }
+
+    }
+
+}
+
 
 @Composable
 private fun Header() {
@@ -336,7 +461,7 @@ private fun Header() {
     }
 }
 
-fun Modifier.clickableWithout(enable: Boolean, onClick: () -> Unit): Modifier {
+fun Modifier.clickableWithout(enable: Boolean = true, onClick: () -> Unit): Modifier {
     return this.clickable(
         interactionSource = MutableInteractionSource(),
         indication = null,

@@ -1,6 +1,5 @@
 package top.fanua.rimuruAndroid.ui.settings
 
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Surface

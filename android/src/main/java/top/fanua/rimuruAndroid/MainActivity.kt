@@ -1,16 +1,12 @@
 package top.fanua.rimuruAndroid
 
-import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Bundle
-import android.os.Process
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.google.accompanist.insets.ProvideWindowInsets
@@ -25,9 +21,6 @@ import top.fanua.rimuruAndroid.ui.UpdateDialog
 import top.fanua.rimuruAndroid.ui.get
 import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.Theme
-import java.io.BufferedReader
-import java.io.FileInputStream
-import java.io.InputStreamReader
 
 
 class MainActivity : AppCompatActivity() {
@@ -50,7 +43,8 @@ class MainActivity : AppCompatActivity() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7,
+                        MIGRATION_7_8
                     )
                         .build().accountDao()
                     Config()
@@ -84,18 +78,47 @@ class MainActivity : AppCompatActivity() {
         viewModel.lastEmail =
             viewModel.accountDao!!.getConfig("lastEmail").collectAsState(null).value?.value.orEmpty()
 
+        viewModel.authServer =
+            viewModel.accountDao!!.getConfig("authServer").collectAsState(null).value?.value
+                ?: "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
+
+        viewModel.sessionServer =
+            viewModel.accountDao!!.getConfig("sessionServer").collectAsState(null).value?.value
+                ?: "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
+
+        viewModel.authList =
+            viewModel.accountDao!!.getSaveAuth().collectAsState(listOf()).value
+
         viewModel.accounts =
-            viewModel.accountDao!!.getSaveAccount().collectAsState(mutableListOf()).value
+            viewModel.accountDao!!.getSaveAccount(viewModel.authServer).collectAsState(mutableListOf()).value
 
         val loginUser = viewModel.accounts.get(viewModel.loginEmail)?.saveAccount
 
         if (loginUser != null) {
             viewModel.me = Role(loginUser.uuid.orEmpty(), loginUser.name.orEmpty(), loginUser.icon.orEmpty())
+            viewModel.authServer = loginUser.authServer
+            viewModel.sessionServer = loginUser.sessionServer
         }
 
         viewModel.viewModelScope.launch(Dispatchers.Main) {
             val data = viewModel.accountDao!!.getSaveAccount().firstOrNull()
             val data1 = viewModel.accountDao!!.getSaveServers(viewModel.loginEmail).firstOrNull()
+            viewModel.viewModelScope.launch(Dispatchers.IO) {
+                val authServer = viewModel.accountDao!!.getConfig("authServer").firstOrNull()
+                if (authServer == null) viewModel.accountDao!!.insertConfig(
+                    Config(
+                        key = "authServer",
+                        value = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
+                    )
+                )
+                val sessionServer = viewModel.accountDao!!.getConfig("sessionServer").firstOrNull()
+                if (sessionServer == null) viewModel.accountDao!!.insertConfig(
+                    Config(
+                        key = "sessionServer",
+                        value = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
+                    )
+                )
+            }
             while (true) {
                 if (data != null && data1 != null) {
                     viewModel.loading = false

@@ -243,3 +243,49 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
     )
 
 }
+
+@Composable
+fun AddAccountServer(auth: (String) -> Unit) {
+    var openDialog by remember { mutableStateOf(true) }
+    var adder: String by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = {
+            if (!openDialog) auth("")
+        },
+        title = {
+            Column {
+                Text("添加外置服务器", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                TextField(
+                    adder, onValueChange = {
+                        adder = it
+                    }, readOnly = !openDialog,
+                    label = {
+                        Text("地址")
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = openDialog,
+                onClick = {
+                    if (adder.isNotEmpty()) {
+                        auth(adder)
+                        openDialog = false
+                    }
+                }
+            ) {
+                Text("确认")
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = openDialog,
+                onClick = {
+                    auth("")
+                }
+            ) {
+                Text("取消")
+            }
+        }
+    )
+
+}

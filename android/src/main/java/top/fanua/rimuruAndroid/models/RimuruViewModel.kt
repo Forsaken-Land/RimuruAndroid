@@ -55,8 +55,10 @@ class RimuruViewModel : ViewModel() {
     var version by mutableStateOf("")
     var context by mutableStateOf<AppCompatActivity?>(null)
 
-    private val authServer: String = "https://skin.blackyin.xyz/api/yggdrasil/authserver/"
-    private val sessionServer: String = "https://skin.blackyin.xyz/api/yggdrasil/sessionserver/"
+    var authServer by mutableStateOf("https://skin.blackyin.xyz/api/yggdrasil/authserver/")
+    var sessionServer by mutableStateOf("https://skin.blackyin.xyz/api/yggdrasil/sessionserver/")
+    var authList by mutableStateOf(listOf<SaveAuth>())
+
     val hashCache by mutableStateOf(mutableStateMapOf<String, String>())
     val online by mutableStateOf(mutableStateMapOf<String, List<Online>>())
     var chatInfo by mutableStateOf(false)

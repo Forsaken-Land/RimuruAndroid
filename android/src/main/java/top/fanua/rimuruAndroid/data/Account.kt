@@ -73,6 +73,14 @@ data class SaveServer(
     var online: Int
 )
 
+@Entity(tableName = "SaveAuth")
+data class SaveAuth(
+    @PrimaryKey(autoGenerate = true) val uid: Long? = null,
+    val authServer: String,
+    val sessionServer: String,
+    val name: String
+)
+
 @Entity(tableName = "SaveChat")
 data class SaveChat(
     @PrimaryKey(autoGenerate = true) val uid: Long? = null,
@@ -101,6 +109,10 @@ interface AccountDao {
     @Query("SELECT * FROM SaveAccount")
     fun getSaveAccount(): Flow<List<EmailWithPassword>>
 
+    @Transaction
+    @Query("SELECT * FROM SaveAccount WHERE authServer = :authServer")
+    fun getSaveAccount(authServer: String): Flow<List<EmailWithPassword>>
+
     @Query("SELECT * FROM SaveServer WHERE email = :email")
     fun getSaveServers(email: String): Flow<List<SaveServer>>
 
@@ -111,11 +123,17 @@ interface AccountDao {
     @Query("SELECT * FROM Config WHERE `key` = :key")
     fun getConfig(key: String): Flow<Config>
 
+    @Query("SELECT * FROM SaveAuth")
+    fun getSaveAuth(): Flow<List<SaveAuth>>
+
     @Insert
     fun insertSaveAccount(saveAccount: SaveAccount, password: Password)
 
     @Insert
     fun insertSaveServer(server: SaveServer)
+
+    @Insert
+    fun insertSaveAuth(saveAuth: SaveAuth)
 
     @Insert
     fun insertSaveChats(saveChat: SaveChat): Long
@@ -130,7 +148,7 @@ interface AccountDao {
     fun updatePassword(password: Password)
 
     @Update
-    fun updateConfig(config: Config)
+    fun updateConfig(vararg config: Config)
 
     @Update
     fun updateSaveServer(server: SaveServer)
@@ -150,8 +168,9 @@ interface AccountDao {
         Config::class,
         SaveServer::class,
         SaveChat::class,
-        Password::class],
-    version = 7
+        Password::class,
+        SaveAuth::class],
+    version = 8
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -189,5 +208,10 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("DROP TABLE Online")
+    }
+}
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("CREATE TABLE SaveAuth (uid INTEGER PRIMARY KEY AUTOINCREMENT, authServer TEXT NOT NULL, sessionServer TEXT NOT NULL, name TEXT NOT NULL)")
     }
 }

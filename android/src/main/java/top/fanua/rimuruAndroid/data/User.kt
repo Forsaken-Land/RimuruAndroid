@@ -2,6 +2,8 @@ package top.fanua.rimuruAndroid.data
 
 import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+
 
 /**
  *
@@ -90,4 +92,35 @@ data class TokenRequest(
 data class SignOutRequest(
     val username: String,
     val password: String
+)
+@Serializable
+data class YggdrasilBody(
+    @SerialName("meta")
+    val meta: Meta,
+    @SerialName("signaturePublickey")
+    val signaturePublickey: String,
+    @SerialName("skinDomains")
+    val skinDomains: List<String>
+)
+
+@Serializable
+data class Meta(
+    @SerialName("feature.non_email_login")
+    val featureNonEmailLogin: Boolean,
+    @SerialName("implementationName")
+    val implementationName: String,
+    @SerialName("implementationVersion")
+    val implementationVersion: String,
+    @SerialName("links")
+    val links: Links,
+    @SerialName("serverName")
+    val serverName: String
+)
+
+@Serializable
+data class Links(
+    @SerialName("homepage")
+    val homepage: String,
+    @SerialName("register")
+    val register: String
 )
