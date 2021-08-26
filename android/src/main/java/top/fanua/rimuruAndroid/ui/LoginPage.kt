@@ -334,7 +334,7 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         )
                         val body = Json.decodeFromString<YggdrasilBody>(json)
                         val authServer = "$url/authserver/"
-                        val sessionServer = "$url/sessionServer/"
+                        val sessionServer = "$url/sessionserver/"
                         viewModel.accountDao!!.insertSaveAuth(
                             SaveAuth(
                                 authServer = authServer,
