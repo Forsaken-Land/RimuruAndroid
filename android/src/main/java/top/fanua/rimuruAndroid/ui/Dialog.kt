@@ -1,6 +1,8 @@
 package top.fanua.rimuruAndroid.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -12,10 +14,12 @@ import androidx.compose.ui.text.substring
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Server
 import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.utils.Info
 import top.fanua.rimuruAndroid.utils.UpdateUtils
 
 /**
@@ -176,6 +180,7 @@ fun ErrorDialog(msg1: String, msg2: String, viewModel: RimuruViewModel, exit: Bo
 @Composable
 fun UpdateDialog(viewModel: RimuruViewModel) {
     val start = remember { mutableStateOf(false) }
+    val data = remember { mutableStateOf(Info(emptyList())) }
     AlertDialog(
         onDismissRequest = {
         },
@@ -187,6 +192,17 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
                     "当前版本:${viewModel.version}\n" +
                             "服务器版本:${viewModel.serverVersion}", modifier = Modifier.padding(horizontal = 20.dp)
                 )
+                viewModel.viewModelScope.launch(Dispatchers.IO) {
+                    data.value = viewModel.updateUtils.getInfo()
+                }
+                MarkdownText("#### 更新日志", modifier = Modifier.padding(horizontal = 20.dp).padding(top = 5.dp))
+                Surface(modifier = Modifier.height(80.dp)) {
+                    LazyColumn(modifier = Modifier.padding(horizontal = 30.dp)) {
+                        items(data.value.data) {
+                            MarkdownText("* $it")
+                        }
+                    }
+                }
                 if (start.value) {
                     LinearProgressIndicator(
                         viewModel.updateUtils.pd,
@@ -194,12 +210,12 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
                     )
                     Text(
                         "进度:${viewModel.updateUtils.pd * 100}%",
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(20.dp),
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(20.dp).fillMaxWidth())
+                    Spacer(modifier = Modifier.height(30.dp).fillMaxWidth())
                 }
             }
         },

@@ -23,6 +23,8 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlinx.serialization.SerialName
+
 
 /**
  *
@@ -31,7 +33,7 @@ import java.io.IOException
  */
 class UpdateUtils(private val viewModel: RimuruViewModel) {
     var pd by mutableStateOf(0.0f)
-    var updateUrl by mutableStateOf("")
+    private var updateUrl by mutableStateOf("")
     var ok by mutableStateOf(false)
     suspend fun checkVersion(): String {
         return withContext(Dispatchers.IO) {
@@ -47,6 +49,22 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
                 update.serverVersion
             } catch (e: Exception) {
                 viewModel.version
+            }
+        }
+    }
+
+    suspend fun getInfo(): Info {
+        return withContext(Dispatchers.IO) {
+            return@withContext try {
+                val url = "https://gitee.com/Doctor_Yin/mc-bot/raw/master/info.json"
+                val json = String(
+                    OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
+                        .readBytes()
+                )
+                val info = Json.decodeFromString<Info>(json)
+                info
+            } catch (e: Exception) {
+                Info(listOf("修复多个模块的若干问题，提升稳定性"))
             }
         }
     }
@@ -127,4 +145,9 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
 data class Update(
     val serverVersion: String,
     val downloadUrl: String
+)
+
+@Serializable
+data class Info(
+    val data: List<String>
 )
