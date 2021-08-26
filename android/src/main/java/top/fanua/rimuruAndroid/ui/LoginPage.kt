@@ -338,7 +338,13 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         var ok = false
                         viewModel.authList.forEach {
                             if (body.meta.serverName == it.name || authServer == it.authServer || sessionServer == it.sessionServer) {
-                                viewModel.accountDao!!.updateSaveAuth(it)
+                                viewModel.accountDao!!.updateSaveAuth(
+                                    it.copy(
+                                        authServer = authServer,
+                                        sessionServer = sessionServer,
+                                        name = body.meta.serverName
+                                    )
+                                )
                                 ok = true
                                 return@forEach
                             }
@@ -404,6 +410,7 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                                             authServer.copy(value = it.authServer),
                                             sessionServer.copy(value = it.sessionServer)
                                         )
+                                        show = false
                                     }
                                 }
                             )
