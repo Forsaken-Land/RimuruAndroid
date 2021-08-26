@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
                         UpdateDialog(viewModel)
                         if (viewModel.updateUtils.ok) {
                             Log.e("安装", "开始安装")
-                            startActivity(viewModel.updateUtils.installApk(applicationContext))
+                            viewModel.updateUtils.installApk(applicationContext)
                         }
                     }
                     viewModel.viewModelScope.launch(Dispatchers.IO) {

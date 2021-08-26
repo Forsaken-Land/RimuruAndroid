@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Process
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +58,7 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
         }
     }
 
-    fun installApk(mContext: Context): Intent {
+    fun installApk(mContext: Context) {
         val fileUri = FileProvider.getUriForFile(
             mContext,
             mContext.packageName + ".fileprovider",
@@ -76,7 +77,8 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
                 "application/vnd.android.package-archive"
             )
         }
-        return intent
+        mContext.startActivity(intent)
+        Process.killProcess(Process.myPid())
 
     }
 
