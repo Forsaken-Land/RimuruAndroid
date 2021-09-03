@@ -7,7 +7,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.substring
@@ -19,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.Server
 import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.models.UserViewModel
 import top.fanua.rimuruAndroid.utils.Info
 import top.fanua.rimuruAndroid.utils.UpdateUtils
 
@@ -178,9 +178,9 @@ fun ErrorDialog(msg1: String, msg2: String, viewModel: RimuruViewModel, exit: Bo
 }
 
 @Composable
-fun UpdateDialog(viewModel: RimuruViewModel) {
+fun UpdateDialog(rimuruViewModel: RimuruViewModel) {
+    val userViewModel: UserViewModel = viewModel()
     val start = remember { mutableStateOf(false) }
-    val data = remember { mutableStateOf(Info(emptyList())) }
     AlertDialog(
         onDismissRequest = {
         },
@@ -189,27 +189,30 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
         }, text = {
             Column {
                 Text(
-                    "当前版本:${viewModel.version}\n" +
-                            "服务器版本:${viewModel.serverVersion}", modifier = Modifier.padding(horizontal = 20.dp)
+                    "当前版本:${rimuruViewModel.version}\n" +
+                            "服务器版本:${rimuruViewModel.serverVersion}", modifier = Modifier.padding(horizontal = 20.dp)
                 )
-                viewModel.viewModelScope.launch(Dispatchers.IO) {
-                    data.value = viewModel.updateUtils.getInfo()
+                if (userViewModel.first) {
+                    rimuruViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        userViewModel.data = rimuruViewModel.updateUtils.getInfo()
+                    }
                 }
+
                 MarkdownText("#### 更新日志", modifier = Modifier.padding(horizontal = 20.dp).padding(top = 5.dp))
                 Surface(modifier = Modifier.height(80.dp)) {
                     LazyColumn(modifier = Modifier.padding(horizontal = 30.dp)) {
-                        items(data.value.data) {
+                        items(userViewModel.data.data) {
                             MarkdownText("* $it")
                         }
                     }
                 }
                 if (start.value) {
                     LinearProgressIndicator(
-                        viewModel.updateUtils.pd,
+                        rimuruViewModel.updateUtils.pd,
                         modifier = Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 10.dp)
                     )
                     Text(
-                        "进度:${viewModel.updateUtils.pd * 100}%",
+                        "进度:${rimuruViewModel.updateUtils.pd * 100}%",
                         modifier = Modifier.fillMaxWidth().height(20.dp),
                         textAlign = TextAlign.Center,
                         maxLines = 1
@@ -223,8 +226,8 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
             TextButton(enabled = !start.value,
                 onClick = {
                     start.value = true
-                    viewModel.viewModelScope.launch(Dispatchers.IO) {
-                        viewModel.updateUtils.update()
+                    rimuruViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        rimuruViewModel.updateUtils.update()
                     }
                 }
             ) {
@@ -234,7 +237,7 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
         dismissButton = {
             TextButton(
                 onClick = {
-                    viewModel.context?.finish()
+                    rimuruViewModel.context?.finish()
                 }
             ) {
                 Text("退出")
@@ -247,7 +250,7 @@ fun UpdateDialog(viewModel: RimuruViewModel) {
 @Composable
 fun AddAccountServer(auth: (String) -> Unit) {
     var openDialog by remember { mutableStateOf(true) }
-    var adder: String by remember { mutableStateOf("") }
+    var adder: String by remember { mutableStateOf("https://") }
     AlertDialog(
         onDismissRequest = {
             if (!openDialog) auth("")

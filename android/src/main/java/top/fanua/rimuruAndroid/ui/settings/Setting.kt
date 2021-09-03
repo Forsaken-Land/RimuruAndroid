@@ -14,9 +14,10 @@ sealed class Setting(
 ) {
     object HeaderSetting : Setting("header", "头像设置")
     object InfoSetting : Setting("info", "关于")
+    object DevChoose:Setting("dev","版本选项")
 
     object Items {
-        val list = listOf(HeaderSetting,InfoSetting)
+        val list = listOf(HeaderSetting,InfoSetting,DevChoose)
     }
 }
 

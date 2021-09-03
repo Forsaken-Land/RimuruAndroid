@@ -47,6 +47,7 @@ import java.util.concurrent.TimeoutException
  * @since 2021/8/7:19:00
  */
 class RimuruViewModel : ViewModel() {
+    var isDev by mutableStateOf(false)
     val updateUtils = UpdateUtils(this)
     var needUpdate by mutableStateOf<Boolean?>(null)
     var serverVersion by mutableStateOf("")
@@ -63,7 +64,8 @@ class RimuruViewModel : ViewModel() {
     val online by mutableStateOf(mutableStateMapOf<String, List<Online>>())
     var chatInfo by mutableStateOf(false)
     var accountDao: AccountDao? by mutableStateOf(null)
-    var theme by mutableStateOf(Theme.Type.Light)
+    var themeType by mutableStateOf(Theme.Type.Light)
+    var theme by mutableStateOf(Theme)
     var loginEmail by mutableStateOf("")
     var loginAccount: SaveAccount? by mutableStateOf(null)
     var lastEmail by mutableStateOf("")
@@ -557,6 +559,16 @@ class RimuruViewModel : ViewModel() {
             }
         }
 
+    }
+
+    fun getUpdateUrl(): String {
+        return if (!isDev) "https://gitee.com/Doctor_Yin/mc-bot/raw/master/update.json"
+        else "https://gitee.com/Doctor_Yin/mc-bot/raw/master/dev-update.json"
+    }
+
+    fun getUpdateInfoUrl(): String {
+        return if (!isDev) "https://gitee.com/Doctor_Yin/mc-bot/raw/master/info.json"
+        else "https://gitee.com/Doctor_Yin/mc-bot/raw/master/dev-info.json"
     }
 }
 

@@ -38,14 +38,13 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
     suspend fun checkVersion(): String {
         return withContext(Dispatchers.IO) {
             return@withContext try {
-                val url = "https://gitee.com/Doctor_Yin/mc-bot/raw/master/update.json"
+                val url = viewModel.getUpdateUrl()
                 val json = String(
                     OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
                         .readBytes()
                 )
                 val update = Json.decodeFromString<Update>(json)
                 updateUrl = update.downloadUrl
-
                 update.serverVersion
             } catch (e: Exception) {
                 viewModel.version
@@ -56,7 +55,7 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
     suspend fun getInfo(): Info {
         return withContext(Dispatchers.IO) {
             return@withContext try {
-                val url = "https://gitee.com/Doctor_Yin/mc-bot/raw/master/info.json"
+                val url = viewModel.getUpdateInfoUrl()
                 val json = String(
                     OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
                         .readBytes()
@@ -64,7 +63,7 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
                 val info = Json.decodeFromString<Info>(json)
                 info
             } catch (e: Exception) {
-                Info(listOf("修复多个模块的若干问题，提升稳定性"))
+                Info(listOf("更新信息出错!", "请前往GitHub查看"))
             }
         }
     }

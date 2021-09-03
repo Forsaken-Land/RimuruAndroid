@@ -26,12 +26,12 @@ import top.fanua.rimuruAndroid.ui.theme.ImageHeader
  * @since 2021/8/19:20:55
  */
 @Composable
-fun OnlineNavigation(viewModel: RimuruViewModel, navController: NavHostController) {
+fun OnlineNavigation(viewModel: RimuruViewModel) {
     if (viewModel.currentChat != null) {
         val online = viewModel.online[viewModel.currentChat!!.server.name]!!
         Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
             Spacer(Modifier.height(60.dp).fillMaxWidth().clickableWithout(true) {
-                navController.navigate("empty")
+                viewModel.context?.onBackPressed()
             })
             LazyRow(
                 Modifier.padding(top = 60.dp),
@@ -49,8 +49,8 @@ fun OnlineNavigation(viewModel: RimuruViewModel, navController: NavHostControlle
 
                 }
             }
-            Spacer(Modifier.padding(top=180.dp).fillMaxSize().clickableWithout(true) {
-                navController.navigate("empty")
+            Spacer(Modifier.padding(top = 180.dp).fillMaxSize().clickableWithout(true) {
+                viewModel.context?.onBackPressed()
             })
 
         }

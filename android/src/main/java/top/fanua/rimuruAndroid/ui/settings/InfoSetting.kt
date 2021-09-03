@@ -37,7 +37,7 @@ fun InfoSetting(viewModel: RimuruViewModel) {
         val byteArray = inputStream.readBytes()
         markdown = String(byteArray)
     }
-    Surface(Modifier.fillMaxSize(), color = Theme.colors.background) {
+    Surface(Modifier.fillMaxSize(), color = viewModel.theme.colors.background) {
         MarkdownText(markdown, modifier = Modifier.padding(horizontal = 20.dp))
     }
 }

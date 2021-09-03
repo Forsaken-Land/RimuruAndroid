@@ -1,9 +1,6 @@
 package top.fanua.rimuruAndroid.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,7 +18,7 @@ import top.fanua.rimuruAndroid.ui.settings.Setting
 fun ComposeNavigation(navController: NavHostController, viewModel: RimuruViewModel) {
     NavHost(
         navController = navController,
-        startDestination = "empty"
+        startDestination = "empty",
     ) {
         composable("empty") {
 
@@ -33,7 +30,10 @@ fun ComposeNavigation(navController: NavHostController, viewModel: RimuruViewMod
             InfoSetting(viewModel)
         }
         composable("online") {
-            OnlineNavigation(viewModel, navController)
+            OnlineNavigation(viewModel)
+        }
+        composable(Setting.DevChoose.id) {
+            VersionNavigation(viewModel)
         }
     }
 }

@@ -1,6 +1,5 @@
 package top.fanua.rimuruAndroid.ui
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,9 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIos
-import androidx.compose.material.icons.rounded.Home
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,11 +34,9 @@ import kotlinx.coroutines.launch
 import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.ChatMap
 import top.fanua.rimuruAndroid.models.RimuruViewModel
-import top.fanua.rimuruAndroid.ui.sustomStuff.Screen.Items.list
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.theme.Theme.Type.*
 import top.fanua.rimuruAndroid.utils.toDateStr
-import java.util.stream.Collectors.toList
 
 /**
  *
@@ -263,7 +258,7 @@ fun TopBar(
                 "切换主题",
                 Modifier
                     .clickable(interactionSource = MutableInteractionSource(), indication = null, onClick = {
-                        viewModel.theme = when (viewModel.theme) {
+                        viewModel.themeType = when (viewModel.themeType) {
                             Light -> Light
                         }
                     })

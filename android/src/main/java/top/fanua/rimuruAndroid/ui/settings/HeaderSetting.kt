@@ -24,9 +24,9 @@ import kotlin.math.roundToInt
 fun HeaderSetting(viewModel: RimuruViewModel) {
     var sliderPosition by remember { mutableStateOf(viewModel.radian.toFloat()) }
     viewModel.radian = sliderPosition.roundToInt()
-    Surface(modifier = Modifier.fillMaxSize().background(Theme.colors.background)) {
+    Surface(modifier = Modifier.fillMaxSize().background(viewModel.theme.colors.background)) {
         Row(
-            Modifier.fillMaxWidth().height(80.dp).background(Theme.colors.background)
+            Modifier.fillMaxWidth().height(80.dp).background(viewModel.theme.colors.background)
                 .padding(horizontal = 40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

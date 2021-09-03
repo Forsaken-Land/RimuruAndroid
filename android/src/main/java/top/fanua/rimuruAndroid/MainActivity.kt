@@ -60,9 +60,11 @@ class MainActivity : AppCompatActivity() {
                             viewModel.updateUtils.installApk(applicationContext)
                         }
                     }
-                    viewModel.viewModelScope.launch(Dispatchers.IO) {
-                        viewModel.serverVersion = viewModel.updateUtils.checkVersion()
-                        viewModel.needUpdate = viewModel.serverVersion != viewModel.version
+                    if (!viewModel.loading) {
+                        viewModel.viewModelScope.launch(Dispatchers.IO) {
+                            viewModel.serverVersion = viewModel.updateUtils.checkVersion()
+                            viewModel.needUpdate = viewModel.serverVersion != viewModel.version
+                        }
                     }
 
                 }
@@ -72,6 +74,9 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     private fun Config() {
+        viewModel.isDev =
+            !viewModel.accountDao!!.getConfig("dev").collectAsState(null).value?.value.isNullOrEmpty()
+
         viewModel.loginEmail =
             viewModel.accountDao!!.getConfig("loginEmail").collectAsState(null).value?.value.orEmpty()
 
