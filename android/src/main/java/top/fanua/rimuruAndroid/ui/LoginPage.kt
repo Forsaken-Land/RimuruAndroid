@@ -306,14 +306,20 @@ fun LoginPage() {
             }
 
         }
-        AccountServer(viewModel)
+        AccountServer(viewModel, choose = {
+            email = ""
+            password = ""
+        }) {
+            keyboardController?.hide()
+            showAccount = it
+        }
     }
 
 }
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-private fun AccountServer(viewModel: RimuruViewModel) {
+private fun AccountServer(viewModel: RimuruViewModel, choose: () -> Unit, unit: (Boolean) -> Unit) {
     var show by remember { mutableStateOf(false) }
     var addAuth by remember { mutableStateOf(false) }
     if (addAuth) {
@@ -361,8 +367,6 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         Log.e("url", url)
                     }
                 }
-
-
                 addAuth = false
                 show = false
             }
@@ -385,7 +389,7 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         .height(160.dp).background(inputColor1)
                 ) {
                     item {
-                        Row(Modifier.fillParentMaxWidth().height(30.dp)) {
+                        Row(Modifier.fillParentMaxWidth().height(40.dp).padding(5.dp)) {
                             Text(
                                 "正版(未支持)",
                                 textAlign = TextAlign.Center,
@@ -396,11 +400,12 @@ private fun AccountServer(viewModel: RimuruViewModel) {
 
                     }
                     items(viewModel.authList) {
-                        Row(Modifier.fillParentMaxWidth().height(40.dp)) {
+                        Row(Modifier.fillParentMaxWidth().height(40.dp).padding(5.dp)) {
                             Text(
                                 it.name,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().clickable {
+                                    choose()
                                     viewModel.viewModelScope.launch(Dispatchers.IO) {
                                         val authServer =
                                             viewModel.accountDao!!.getConfig("authServer").firstOrNull()!!
@@ -417,7 +422,7 @@ private fun AccountServer(viewModel: RimuruViewModel) {
                         }
                     }
                     item {
-                        Row(Modifier.fillParentMaxWidth().height(40.dp)) {
+                        Row(Modifier.fillParentMaxWidth().height(40.dp).padding(5.dp)) {
                             Text(
                                 "添加外置服务器",
                                 textAlign = TextAlign.Center,
@@ -431,9 +436,14 @@ private fun AccountServer(viewModel: RimuruViewModel) {
             }
 
         }
-        IconButton(onClick = {
-            show = !show
-        }, modifier = Modifier.offset(y = 160.dp).shadow(5.dp, RoundedCornerShape(50.dp)).background(Color.Red)) {
+        IconButton(
+            onClick = {
+                unit(false)
+                show = !show
+            },
+            modifier = Modifier.size(40.dp).offset(y = 160.dp).clip(RoundedCornerShape(50.dp))
+                .background(Color.Red)
+        ) {
             Icon(if (show) Icons.Outlined.Close else Icons.Outlined.Menu, null)
         }
 
