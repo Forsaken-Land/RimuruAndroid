@@ -52,7 +52,7 @@ class RimuruViewModel : ViewModel() {
     var needUpdate by mutableStateOf<Boolean?>(null)
     var serverVersion by mutableStateOf("")
     var loading by mutableStateOf(true)
-    var currentScreen by mutableStateOf<Screen>(Screen.Settings)
+    var currentScreen by mutableStateOf<Screen>(Screen.Chat)
     var version by mutableStateOf("")
     var context by mutableStateOf<AppCompatActivity?>(null)
 
@@ -510,10 +510,14 @@ class RimuruViewModel : ViewModel() {
         if (currentChat != null) {
             clients.forEach { client ->
                 if (client.connection.host == currentChat!!.server.host && currentChat!!.server.port == client.connection.port) {
-                    if (string.replace(" ","")[0] != '/') {
+                    if (string.replace(" ", "").isEmpty()) {
                         client.sendMessage(string)
                     } else {
-                        client.sendMessage(".$string")
+                        if (string.replace(" ", "")[0] != '/') {
+                            client.sendMessage(string)
+                        } else {
+                            client.sendMessage(".$string")
+                        }
                     }
                 }
             }

@@ -50,6 +50,7 @@ import okhttp3.Request
 import top.fanua.rimuruAndroid.data.*
 import top.fanua.rimuruAndroid.models.LoginStatus.*
 import top.fanua.rimuruAndroid.models.RimuruViewModel
+import top.fanua.rimuruAndroid.ui.sustomStuff.Screen
 import top.fanua.rimuruAndroid.ui.theme.*
 import kotlin.math.roundToInt
 
@@ -254,6 +255,7 @@ fun LoginPage() {
                                     viewModel.viewModelScope.launch(Dispatchers.IO) {
                                         loginStatus = viewModel.loginAccount(email, password)
                                         Log.i("登录信息", "$email: $loginStatus")
+                                        viewModel.currentScreen = Screen.Chat
                                     }
                                 }
                             }

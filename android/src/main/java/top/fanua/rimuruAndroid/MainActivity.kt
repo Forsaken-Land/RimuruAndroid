@@ -45,8 +45,7 @@ class MainActivity : AppCompatActivity() {
                         MIGRATION_5_6,
                         MIGRATION_6_7,
                         MIGRATION_7_8
-                    )
-                        .build().accountDao()
+                    ).build().accountDao()
                     Config()
                     if (!viewModel.loading && viewModel.needUpdate == false) {
                         viewModel.start()
@@ -142,7 +141,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.radian = viewModel.accounts.get(viewModel.lastEmail)?.saveAccount?.radian ?: 10
         }
 
-        if (viewModel.loginEmail == "") viewModel.currentScreen = Screen.Chat
+//        if (viewModel.loginEmail == "") viewModel.currentScreen = Screen.Chat
 
     }
 

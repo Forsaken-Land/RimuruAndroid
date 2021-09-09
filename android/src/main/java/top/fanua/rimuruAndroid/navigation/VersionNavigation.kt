@@ -24,6 +24,10 @@ import top.fanua.rimuruAndroid.data.Config
 import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.models.UserViewModel
 
+private val jsonUtil = Json {
+    ignoreUnknownKeys = true
+}
+
 /**
  *
  * @author Doctor_Yin
@@ -41,9 +45,7 @@ fun VersionNavigation(rimuruViewModel: RimuruViewModel) {
                     OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
                         .readBytes()
                 )
-                val data = Json {
-                    ignoreUnknownKeys = true
-                }.decodeFromString<AllVersion>(json)
+                val data = jsonUtil.decodeFromString<AllVersion>(json)
                 userViewModel.devVersion = data.dev
                 userViewModel.releaseVersion = data.release
             } catch (e: Exception) {
