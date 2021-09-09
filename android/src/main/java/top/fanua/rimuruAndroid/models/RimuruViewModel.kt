@@ -445,10 +445,12 @@ class RimuruViewModel : ViewModel() {
                     val json = Json.parseToJsonElement(json).jsonObject["extra"]!!
                     val text =
                         json.jsonArray[1].jsonObject["text"]!!.jsonPrimitive.content
+                    val list = json.jsonArray[0].jsonObject["extra"]!!.jsonArray
+                    val data = list.find {
+                        it.jsonObject["hoverEvent"] != null
+                    }!!
                     val temp =
-                        json.jsonArray[0]
-                            .jsonObject["extra"]!!.jsonArray[1]
-                            .jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
+                        data.jsonObject["hoverEvent"]!!.jsonObject["value"]!!.jsonObject["text"]!!.jsonPrimitive.content
                     val jsonTemp =
                         Json.parseToJsonElement(
                             temp.replace("name", "\"name\"").replace("id", "\"id\"")
@@ -508,7 +510,7 @@ class RimuruViewModel : ViewModel() {
         if (currentChat != null) {
             clients.forEach { client ->
                 if (client.connection.host == currentChat!!.server.host && currentChat!!.server.port == client.connection.port) {
-                    if (string[0] != '/') {
+                    if (string.replace(" ","")[0] != '/') {
                         client.sendMessage(string)
                     } else {
                         client.sendMessage(".$string")

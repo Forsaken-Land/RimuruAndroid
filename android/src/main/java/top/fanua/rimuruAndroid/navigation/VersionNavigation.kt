@@ -86,7 +86,7 @@ private fun ChangeVersion(
         if (dev == null) {
             enable = true
         } else {
-            if (dev.value.isNotEmpty()) enable = true
+            if (dev.value.isEmpty()) enable = true
             else {
                 if (userViewModel.releaseVersion == userViewModel.devVersion) enable = true
             }

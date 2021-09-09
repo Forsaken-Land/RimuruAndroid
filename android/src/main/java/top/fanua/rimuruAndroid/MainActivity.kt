@@ -99,6 +99,9 @@ class MainActivity : AppCompatActivity() {
 
         val loginUser = viewModel.accounts.get(viewModel.loginEmail)?.saveAccount
 
+        viewModel.enableEditHost = !viewModel.authServer.contains("https://skin.blackyin.xyz/")
+
+
         if (loginUser != null) {
             viewModel.me = Role(loginUser.uuid.orEmpty(), loginUser.name.orEmpty(), loginUser.icon.orEmpty())
             viewModel.authServer = loginUser.authServer
