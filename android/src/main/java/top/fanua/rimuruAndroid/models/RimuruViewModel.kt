@@ -141,7 +141,11 @@ class RimuruViewModel : ViewModel() {
     fun validateYggdrasilSession() {
         val ygg = YggdrasilApi(authServer, sessionServer).createService()
         runBlocking {
-            val ok = ygg.validate(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))
+            val ok = try {
+                ygg.validate(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))
+            } catch (e: Exception) {
+                false
+            }
             if (!ok) {
                 val thread = kotlin.runCatching {
                     ygg.refresh(Token(accounts.get(loginEmail)!!.saveAccount.accessToken!!))

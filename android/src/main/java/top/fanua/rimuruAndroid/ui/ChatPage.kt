@@ -39,6 +39,8 @@ import top.fanua.rimuruAndroid.models.RimuruViewModel
 import top.fanua.rimuruAndroid.ui.theme.ImageHeader
 import top.fanua.rimuruAndroid.ui.theme.Theme
 import top.fanua.rimuruAndroid.ui.theme.inputColor1
+import top.fanua.rimuruAndroid.utils.isToday
+import top.fanua.rimuruAndroid.utils.isYesterday
 import top.fanua.rimuruAndroid.utils.toDateStr
 import kotlin.math.roundToInt
 
@@ -135,7 +137,7 @@ fun UserInput(isLogin: Boolean, send: (String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp)
-                    .heightIn(48.dp, 150.dp)
+                    .heightIn(40.dp, 150.dp)
                     .semantics {
                         keyboardShownProperty = textFieldFocusState
                     },
@@ -149,7 +151,7 @@ fun UserInput(isLogin: Boolean, send: (String) -> Unit) {
                             msg.substring(0, 255)
                         } else it
                     },
-                    modifier = Modifier.fillMaxWidth(0.85f).heightIn(48.dp, 150.dp)
+                    modifier = Modifier.fillMaxWidth(0.85f).heightIn(40.dp, 150.dp)
                         .background(inputColor1, RoundedCornerShape(10.dp))
                         .padding(10.dp)
                         .onFocusChanged { state ->
@@ -207,9 +209,15 @@ fun Messages(
         ) {
             itemsIndexed(chat.msg.reversed()) { index, msg ->
                 MessageItem(msg, role)
-                if (index != chat.msg.size - 1 && (msg.time - (30 * 1000L)) > lastTime) {
+                lastTime = if (chat.msg.size - 1 == index) msg.time
+                else chat.msg[index + 1].time
+                if (index != chat.msg.size - 1 && (msg.time - (20 * 1000L)) > lastTime) {
                     Text(
-                        msg.time.toDateStr("HH:mm"),
+                        when {
+                            msg.time.isToday() -> msg.time.toDateStr("HH:mm")
+                            msg.time.isYesterday() -> msg.time.toDateStr("昨天 HH:mm")
+                            else -> msg.time.toDateStr("MM-dd HH:mm")
+                        },
                         fontSize = 8.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -218,13 +226,17 @@ fun Messages(
                 if (index == chat.msg.size - 1) {
                     lastTime = msg.time
                     Text(
-                        msg.time.toDateStr("HH:mm"),
+                        when {
+                            msg.time.isToday() -> msg.time.toDateStr("HH:mm")
+                            msg.time.isYesterday() -> msg.time.toDateStr("昨天 HH:mm")
+                            else -> msg.time.toDateStr("MM-dd HH:mm")
+                        },
                         fontSize = 8.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                lastTime = msg.time
+
             }
         }
     }

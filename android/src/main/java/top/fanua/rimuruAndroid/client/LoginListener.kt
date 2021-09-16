@@ -33,7 +33,11 @@ class LoginListener(
 ) : EventListener {
     override fun initListen(emitter: EventEmitter) {
         emitter.on(NetLifeCycleEvent.BeforeConnect) {
-            viewModel.validateYggdrasilSession()
+            try {
+                viewModel.validateYggdrasilSession()
+            } catch (e: Exception) {
+                Log.e("error",e.message.toString())
+            }
         }
         emitter.on(ConnectionEvent.Connected) { (ctx) ->
             ctx!!

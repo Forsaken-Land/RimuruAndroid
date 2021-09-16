@@ -35,6 +35,7 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
     var pd by mutableStateOf(0.0f)
     private var updateUrl by mutableStateOf("")
     var ok by mutableStateOf(false)
+    var data: Info? by mutableStateOf(null)
     suspend fun checkVersion(): String {
         return withContext(Dispatchers.IO) {
             return@withContext try {
@@ -52,20 +53,21 @@ class UpdateUtils(private val viewModel: RimuruViewModel) {
         }
     }
 
-    suspend fun getInfo(): Info {
-        return withContext(Dispatchers.IO) {
-            return@withContext try {
+    fun getInfo(): Info {
+        if (data == null) {
+            val info = try {
                 val url = viewModel.getUpdateInfoUrl()
                 val json = String(
                     OkHttpClient().newCall(Request.Builder().get().url(url).build()).execute().body!!.byteStream()
                         .readBytes()
                 )
-                val info = Json.decodeFromString<Info>(json)
-                info
+                Json.decodeFromString(json)
             } catch (e: Exception) {
                 Info(listOf("更新信息出错!", "请前往GitHub查看"))
             }
+            data = info
         }
+        return data!!
     }
 
     suspend fun update() {
