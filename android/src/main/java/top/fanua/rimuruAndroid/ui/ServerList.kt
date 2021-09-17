@@ -134,7 +134,8 @@ private fun ChatListItem(
                     IntOffset(swipeableState.offset.value.toInt(), 0)
                 }.clickable {
                     viewModel.startChat(item?.toChat()!!)
-                }
+                },
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 rememberImagePainter(data = server.icon),
@@ -159,16 +160,34 @@ private fun ChatListItem(
 
 
                 }
-                if (item != null && item.toChat().msg.isNotEmpty()) Row {
-                    Text(
-                        "${item.toChat().msg.last().from.name}: ${item.toChat().msg.last().text.replace("\n", "    ")}",
-                        color = Theme.colors.timeText,
-                        maxLines = 1,
-                        fontSize = 10.sp
-                    )
+                Row(
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (item != null && item.toChat().msg.isNotEmpty())
+                        Text(
+                            "${item.toChat().msg.last().from.name}: ${
+                                item.toChat().msg.last().text.replace(
+                                    "\n",
+                                    "    "
+                                )
+                            }",
+                            color = Theme.colors.timeText,
+                            maxLines = 1,
+                            fontSize = 10.sp,
+                            modifier = Modifier.fillMaxWidth(0.8f)
+                        )
                     //TODO
                     //气泡
+                    else Spacer(Modifier.fillMaxWidth(0.8f))
+                    val checkedState = remember { mutableStateOf(true) }
+                    Switch(
+                        checked = checkedState.value,
+                        onCheckedChange = { checkedState.value = it },
+                        modifier = Modifier.padding(horizontal = 19.dp).size(15.dp)
+                    )
                 }
+
             }
         }
         Surface(
