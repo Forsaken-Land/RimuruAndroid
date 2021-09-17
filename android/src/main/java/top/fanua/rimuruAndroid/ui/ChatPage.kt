@@ -142,7 +142,7 @@ fun UserInput(isLogin: Boolean, send: (String) -> Unit) {
                         keyboardShownProperty = textFieldFocusState
                     },
                 horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 BasicTextField(
                     value = msg,
@@ -151,7 +151,7 @@ fun UserInput(isLogin: Boolean, send: (String) -> Unit) {
                             msg.substring(0, 255)
                         } else it
                     },
-                    modifier = Modifier.fillMaxWidth(0.85f).heightIn(40.dp, 150.dp)
+                    modifier = Modifier.fillMaxWidth(0.85f).heightIn(max = 150.dp)
                         .background(inputColor1, RoundedCornerShape(10.dp))
                         .padding(10.dp)
                         .onFocusChanged { state ->
@@ -207,11 +207,12 @@ fun Messages(
             ), modifier = Modifier
                 .fillMaxSize()
         ) {
-            itemsIndexed(chat.msg.reversed()) { index, msg ->
+            val list = chat.msg.reversed()
+            itemsIndexed(list) { index, msg ->
                 MessageItem(msg, role)
                 lastTime = if (chat.msg.size - 1 == index) msg.time
-                else chat.msg[index + 1].time
-                if (index != chat.msg.size - 1 && (msg.time - (20 * 1000L)) > lastTime) {
+                else list[index + 1].time
+                if (index != chat.msg.size - 1 && (msg.time - (30 * 1000L)) > lastTime) {
                     Text(
                         when {
                             msg.time.isToday() -> msg.time.toDateStr("HH:mm")
@@ -286,7 +287,7 @@ fun MessageItem(
                             }
                             drawPath(bubble, bubbleColor)
                         }
-                        .padding(20.dp, 10.dp).widthIn(max = 280.dp),
+                        .padding(20.dp, 10.dp).widthIn(max = 240.dp).align(Alignment.End),
                     color = Theme.colors.textPrimaryMe
                 )
             }
@@ -306,8 +307,8 @@ fun MessageItem(
                 Text(
                     msg.from.name,
                     fontSize = 10.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.width(80.dp).padding(2.dp).align(Alignment.Start),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.width(80.dp).padding(horizontal = 10.dp).padding(2.dp).align(Alignment.Start),
                     maxLines = 1
                 )
                 Text(
@@ -331,7 +332,7 @@ fun MessageItem(
                             }
                             drawPath(bubble, bubbleColor)
                         }
-                        .padding(20.dp, 10.dp).widthIn(max = 320.dp),
+                        .padding(20.dp, 10.dp).widthIn(max = 240.dp),
                     color = Theme.colors.textPrimary
                 )
             }
